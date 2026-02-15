@@ -1,11 +1,5 @@
 # Junior
 
-[![Powered by Claude](https://img.shields.io/badge/Powered_by-Claude-d97706.svg)](https://docs.anthropic.com/en/docs/claude-code)
-[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6.svg)](https://www.typescriptlang.org/)
-[![Built with Bun](https://img.shields.io/badge/Built_with-Bun-f9f1e1.svg)](https://bun.sh)
-[![React + Ink](https://img.shields.io/badge/TUI-React_+_Ink-61dafb.svg)](https://github.com/vadimdemedes/ink)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-
 queue prompts. schedule jobs. claude codes. you sleep.
 
 ## what it does
