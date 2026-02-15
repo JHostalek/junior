@@ -1,4 +1,4 @@
-# Junior
+# junior
 
 queue prompts. schedule jobs. claude codes. you sleep.
 
