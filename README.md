@@ -1,10 +1,16 @@
 # Junior
 
+[![Powered by Claude](https://img.shields.io/badge/Powered_by-Claude-d97706.svg)](https://docs.anthropic.com/en/docs/claude-code)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6.svg)](https://www.typescriptlang.org/)
+[![Built with Bun](https://img.shields.io/badge/Built_with-Bun-f9f1e1.svg)](https://bun.sh)
+[![React + Ink](https://img.shields.io/badge/TUI-React_+_Ink-61dafb.svg)](https://github.com/vadimdemedes/ink)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 queue prompts. schedule jobs. claude codes. you sleep.
 
 ## what it does
 
-background daemon that picks up tasks, spins up isolated git worktrees, lets Claude Code do the work, and merges results back. you add tasks, it ships code.
+background daemon that picks up tasks, spins up isolated git worktrees, lets Claude Code do the work, and merges results back.
 
 > **Heads up:** Junior runs Claude Code in headless mode with `--dangerously-skip-permissions`. That means full autonomy — file writes, shell commands, git operations — no human approval prompts. You are responsible for what you point it at.
 
@@ -16,7 +22,7 @@ bun install && bun run build
 ln -s "$(pwd)/dist/junior" /usr/local/bin/junior
 ```
 
-needs [Bun](https://bun.sh), [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code), git 2.20+
+needs [Bun](https://bun.sh) and [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
 
 ## usage
 
