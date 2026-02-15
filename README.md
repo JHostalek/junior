@@ -28,7 +28,7 @@ junior         # open the TUI — everything happens here
 
 prefer the CLI? run `junior --help` for the full command reference.
 
-## how it works
+## features
 
 - **fire and forget** — describe a task, walk away. it queues, executes, and merges while you do something else.
 - **nothing breaks** — every task runs in its own git branch. your working tree stays clean.
