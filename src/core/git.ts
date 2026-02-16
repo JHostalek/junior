@@ -186,6 +186,24 @@ export async function abortMerge(repoPath: string): Promise<void> {
   await exec('git', ['-C', repoPath, 'merge', '--abort']);
 }
 
+export async function isBranchMerged(repoPath: string, branch: string, into: string): Promise<boolean> {
+  validateBranchName(branch);
+  validateBranchName(into);
+  const { stdout } = await exec('git', ['-C', repoPath, 'branch', '--merged', into]);
+  return stdout.split('\n').some((line) => line.trim() === branch);
+}
+
+export async function tryPopJuniorStash(repoPath: string): Promise<boolean> {
+  const { stdout } = await exec('git', ['-C', repoPath, 'stash', 'list']);
+  const lines = stdout.split('\n');
+  const stashEntry = lines.find((line) => line.includes('junior-autostash'));
+  if (!stashEntry) return false;
+  const match = stashEntry.match(/^(stash@\{(\d+)\})/);
+  if (!match) return false;
+  await exec('git', ['-C', repoPath, 'stash', 'pop', '--index', match[1]]);
+  return true;
+}
+
 export async function symlinkIgnored(repoPath: string, worktreePath: string): Promise<void> {
   let entries: string[];
   try {

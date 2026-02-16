@@ -177,18 +177,83 @@ export function buildClaudeArgs(prompt: string): string[] {
   ];
 }
 
-export function buildMergeConflictPrompt(worktreePath: string): string {
+export interface FinalizePromptOptions {
+  repoPath: string;
+  worktreePath: string;
+  branchName: string;
+  baseBranch: string;
+  jobTitle: string;
+}
+
+export function buildFinalizePrompt(opts: FinalizePromptOptions): string {
   return [
-    `You are resolving merge conflicts in a git worktree at: ${worktreePath}`,
-    ``,
-    `The working directory has merge conflicts from a git merge. Resolve all conflicts:`,
-    `1. Find all conflicted files (git diff --name-only --diff-filter=U)`,
-    `2. Read each conflicted file and resolve the conflicts intelligently`,
-    `3. Stage the resolved files (git add)`,
-    `4. Commit the merge (git commit --no-edit)`,
-    ``,
-    `Do not skip any conflicted file. Resolve every conflict.`,
+    'You are a git finalize agent. Your ONLY job is to commit and merge code changes.',
+    'You must NOT modify any source code. Only run git commands.',
+    '',
+    'Context:',
+    `- Repository: ${opts.repoPath}`,
+    `- Worktree: ${opts.worktreePath}`,
+    `- Feature branch: ${opts.branchName} (in the worktree)`,
+    `- Base branch: ${opts.baseBranch}`,
+    `- Task that was completed: ${opts.jobTitle}`,
+    '',
+    'Execute these steps in order:',
+    '',
+    'STEP 1 — COMMIT WORKTREE CHANGES (if needed)',
+    `Check if the worktree at ${opts.worktreePath} has uncommitted changes:`,
+    `  git -C ${opts.worktreePath} status --porcelain`,
+    'If there are changes:',
+    `1. git -C ${opts.worktreePath} add -A`,
+    `2. git -C ${opts.worktreePath} diff --cached --stat  (review what you're committing)`,
+    '3. Look for commit message conventions in the repo (check for commitlint config,',
+    '   .commitlintrc, package.json commitlint field, etc.)',
+    `4. git -C ${opts.worktreePath} commit with a message following the repo's conventions`,
+    '   - If conventional commits: pick the right type (feat/fix/refactor/chore) based on the diff',
+    '   - If hooks reject the commit, read the error and fix the message accordingly',
+    `If there are no changes, check if there are already commits ahead of ${opts.baseBranch}:`,
+    `  git -C ${opts.worktreePath} log ${opts.baseBranch}..HEAD --oneline`,
+    `If no changes AND no commits ahead, there is nothing to merge — report this and stop.`,
+    '',
+    `STEP 2 — MERGE BASE BRANCH INTO WORKTREE (catch up)`,
+    'Merge the base branch into the worktree to catch up with any changes:',
+    `  git -C ${opts.worktreePath} merge ${opts.baseBranch} --no-edit`,
+    'If there are merge conflicts:',
+    `1. git -C ${opts.worktreePath} diff --name-only --diff-filter=U  (find conflicted files)`,
+    '2. Read each conflicted file and resolve the conflicts intelligently',
+    `3. git -C ${opts.worktreePath} add <resolved files>`,
+    `4. git -C ${opts.worktreePath} commit --no-edit`,
+    '',
+    'STEP 3 — MERGE INTO BASE BRANCH',
+    '1. Check for uncommitted changes in the main repo:',
+    `   git -C ${opts.repoPath} status --porcelain`,
+    `   If dirty: git -C ${opts.repoPath} stash push -m "junior-autostash"`,
+    `2. git -C ${opts.repoPath} checkout ${opts.baseBranch}`,
+    `3. git -C ${opts.repoPath} merge --no-ff ${opts.branchName} -m "<message>"`,
+    "   - Use a merge commit message following the repo's conventions",
+    '   - If hooks reject the message, read the error and fix it',
+    `4. If you stashed in step 1: git -C ${opts.repoPath} stash pop`,
+    `5. Verify: git -C ${opts.repoPath} log --oneline -1`,
+    '',
+    'IMPORTANT RULES:',
+    '- Do NOT modify any source code files. Only git operations.',
+    '- Do NOT skip pre-commit hooks (no --no-verify) unless you have exhausted all other options.',
+    '- If a hook fails, read the error output carefully and adapt your approach.',
+    '- If after 3 attempts a commit/merge still fails on hooks, use --no-verify as last resort.',
+    '- Always use -C <path> for git commands — never cd.',
   ].join('\n');
+}
+
+export function buildFinalizeArgs(prompt: string): string[] {
+  return [
+    '-p',
+    prompt,
+    '--output-format',
+    'stream-json',
+    '--verbose',
+    '--dangerously-skip-permissions',
+    '--model',
+    'sonnet',
+  ];
 }
 
 export async function translateCron(input: string): Promise<string> {

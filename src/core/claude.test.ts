@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { buildClaudeArgs, buildMergeConflictPrompt, parseClaudeOutput } from './claude.js';
+import { buildClaudeArgs, buildFinalizeArgs, buildFinalizePrompt, parseClaudeOutput } from './claude.js';
 import { ClaudeError } from './errors.js';
 
 describe('buildClaudeArgs', () => {
@@ -14,10 +14,70 @@ describe('buildClaudeArgs', () => {
   });
 });
 
-describe('buildMergeConflictPrompt', () => {
-  test('includes the worktree path', () => {
-    const prompt = buildMergeConflictPrompt('/tmp/worktree-1');
-    expect(prompt).toContain('/tmp/worktree-1');
+describe('buildFinalizePrompt', () => {
+  const opts = {
+    repoPath: '/home/user/repo',
+    worktreePath: '/home/user/.junior/worktrees/job-42',
+    branchName: 'junior/fix-bug-42',
+    baseBranch: 'main',
+    jobTitle: 'fix login bug',
+  };
+
+  test('includes all context parameters', () => {
+    const prompt = buildFinalizePrompt(opts);
+    expect(prompt).toContain(opts.repoPath);
+    expect(prompt).toContain(opts.worktreePath);
+    expect(prompt).toContain(opts.branchName);
+    expect(prompt).toContain(opts.baseBranch);
+    expect(prompt).toContain(opts.jobTitle);
+  });
+
+  test('includes commit step instructions', () => {
+    const prompt = buildFinalizePrompt(opts);
+    expect(prompt).toContain('STEP 1');
+    expect(prompt).toContain('status --porcelain');
+    expect(prompt).toContain('commitlint');
+  });
+
+  test('includes merge conflict resolution instructions', () => {
+    const prompt = buildFinalizePrompt(opts);
+    expect(prompt).toContain('STEP 2');
+    expect(prompt).toContain('merge conflicts');
+    expect(prompt).toContain('diff-filter=U');
+  });
+
+  test('includes merge into base branch instructions', () => {
+    const prompt = buildFinalizePrompt(opts);
+    expect(prompt).toContain('STEP 3');
+    expect(prompt).toContain('merge --no-ff');
+    expect(prompt).toContain('junior-autostash');
+  });
+
+  test('includes safety rules about not modifying source code', () => {
+    const prompt = buildFinalizePrompt(opts);
+    expect(prompt).toContain('Do NOT modify any source code');
+    expect(prompt).toContain('no --no-verify');
+    expect(prompt).toContain('last resort');
+  });
+});
+
+describe('buildFinalizeArgs', () => {
+  test('returns correct flags without worker preamble', () => {
+    const args = buildFinalizeArgs('finalize prompt');
+    expect(args[0]).toBe('-p');
+    expect(args[1]).toBe('finalize prompt');
+    expect(args[1]).not.toContain('junior framework');
+    expect(args).toContain('--output-format');
+    expect(args).toContain('stream-json');
+    expect(args).toContain('--verbose');
+    expect(args).toContain('--dangerously-skip-permissions');
+  });
+
+  test('includes --model sonnet for cost efficiency', () => {
+    const args = buildFinalizeArgs('prompt');
+    const modelIdx = args.indexOf('--model');
+    expect(modelIdx).toBeGreaterThan(-1);
+    expect(args[modelIdx + 1]).toBe('sonnet');
   });
 });
 
