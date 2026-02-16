@@ -2,7 +2,7 @@ import { eq, inArray, sql } from 'drizzle-orm';
 import { Box, render, Text, useApp, useInput } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { deleteJob } from '@/cli/task.js';
-import { extractSchedule } from '@/core/claude.js';
+import { extractHook, extractSchedule } from '@/core/claude.js';
 import { loadConfig, setConfigValue } from '@/core/config.js';
 import { DOUBLE_DELETE_TIMEOUT_MS, MESSAGE_FLASH_DURATION_MS, TITLE_MAX_LENGTH } from '@/core/constants.js';
 import { errorMessage } from '@/core/errors.js';
@@ -12,12 +12,16 @@ import { info } from '@/core/logger.js';
 import { getRepoPath } from '@/core/paths.js';
 import { isDaemonRunning } from '@/daemon/pid.js';
 import { ensureInit, getDb, schema } from '@/db/index.js';
+import { AddHook } from './AddHook.js';
 import { AddSchedule } from './AddSchedule.js';
 import { AddTask } from './AddTask.js';
 import { copyToClipboard } from './clipboard.js';
 import { startDaemon, stopDaemon } from './daemon.js';
+import { EditHook } from './EditHook.js';
 import { EditSchedule } from './EditSchedule.js';
 import { ExitDialog } from './ExitDialog.js';
+import { HookDetail, useHookJobs } from './HookDetail.js';
+import { HookList } from './HookList.js';
 import { buildHints } from './hints.js';
 import { useJuniorData } from './hooks.js';
 import { ScheduleDetail, useScheduleJobs } from './ScheduleDetail.js';
@@ -28,7 +32,19 @@ import { TaskList } from './TaskList.js';
 import { useTerminalSize } from './useTerminalSize.js';
 import type { VimMode } from './useVimMode.js';
 
-type View = 'input' | 'list' | 'detail' | 'schedules' | 'scheduleDetail' | 'addSchedule' | 'editSchedule' | 'exiting';
+type View =
+  | 'input'
+  | 'list'
+  | 'detail'
+  | 'schedules'
+  | 'scheduleDetail'
+  | 'addSchedule'
+  | 'editSchedule'
+  | 'hooks'
+  | 'hookDetail'
+  | 'addHook'
+  | 'editHook'
+  | 'exiting';
 
 const FILTERS = [null, 'queued', 'running', 'failed', 'done'] as const;
 
@@ -50,15 +66,24 @@ function App() {
   const [scheduleCursor, setScheduleCursor] = useState(0);
   const [schedPendingD, setSchedPendingD] = useState(false);
   const [schedDeleteConfirm, setSchedDeleteConfirm] = useState<number | null>(null);
-  const [detailOrigin, setDetailOrigin] = useState<'list' | 'scheduleDetail'>('list');
+  const [detailOrigin, setDetailOrigin] = useState<'list' | 'scheduleDetail' | 'hookDetail'>('list');
   const [schedDetailId, setSchedDetailId] = useState<number | null>(null);
   const [schedDetailJobCursor, setSchedDetailJobCursor] = useState(0);
   const [schedDetailJobCount, setSchedDetailJobCount] = useState(0);
   const [detailJob, setDetailJob] = useState<(typeof jobs)[number] | null>(null);
   const [editScheduleId, setEditScheduleId] = useState<number | null>(null);
   const [editOrigin, setEditOrigin] = useState<'schedules' | 'scheduleDetail'>('schedules');
+  const [hookCursor, setHookCursor] = useState(0);
+  const [hookPendingD, setHookPendingD] = useState(false);
+  const [hookDeleteConfirm, setHookDeleteConfirm] = useState<number | null>(null);
+  const [hookDetailId, setHookDetailId] = useState<number | null>(null);
+  const [hookDetailJobCursor, setHookDetailJobCursor] = useState(0);
+  const [hookDetailJobCount, setHookDetailJobCount] = useState(0);
+  const [editHookId, setEditHookId] = useState<number | null>(null);
+  const [editHookOrigin, setEditHookOrigin] = useState<'hooks' | 'hookDetail'>('hooks');
   const pendingDTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const schedPendingDTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hookPendingDTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     getCurrentBranch(getRepoPath())
@@ -116,12 +141,25 @@ function App() {
   const schedDetailSelectedJob = schedDetailJobs[schedDetailJobCursor] ?? null;
   const activeDetailJob = detailJob ?? selectedJob;
 
+  const { hooks: hooksList } = data;
+  const selectedHook = hooksList[hookCursor] ?? null;
+  const activeDetailHook = hookDetailId !== null ? (hooksList.find((h) => h.id === hookDetailId) ?? null) : null;
+  const hookDetailJobs = useHookJobs(activeDetailHook?.id ?? null);
+  const hookDetailSelectedJob = hookDetailJobs[hookDetailJobCursor] ?? null;
+
   useEffect(() => {
     if (view === 'scheduleDetail' && activeDetailSchedule === null) {
       setView('schedules');
       setSchedDetailId(null);
     }
   }, [view, activeDetailSchedule]);
+
+  useEffect(() => {
+    if (view === 'hookDetail' && activeDetailHook === null) {
+      setView('hooks');
+      setHookDetailId(null);
+    }
+  }, [view, activeDetailHook]);
 
   const handleExit = useCallback(() => {
     const { running } = isDaemonRunning();
@@ -187,6 +225,9 @@ function App() {
         if (detailOrigin === 'scheduleDetail') {
           setDetailJob(null);
           setView('scheduleDetail');
+        } else if (detailOrigin === 'hookDetail') {
+          setDetailJob(null);
+          setView('hookDetail');
         } else {
           setView('list');
         }
@@ -195,7 +236,7 @@ function App() {
       return;
     }
 
-    if (view === 'addSchedule' || view === 'editSchedule') return;
+    if (view === 'addSchedule' || view === 'editSchedule' || view === 'addHook' || view === 'editHook') return;
 
     if (view === 'scheduleDetail') {
       if (key.ctrl && input === 'c') {
@@ -396,6 +437,202 @@ function App() {
       return;
     }
 
+    if (view === 'hookDetail') {
+      if (key.ctrl && input === 'c') {
+        handleExit();
+        return;
+      }
+      if (key.escape) {
+        setView('hooks');
+        setHookDetailId(null);
+        setHookDetailJobCursor(0);
+        return;
+      }
+      if (key.upArrow || input === 'k') {
+        setHookDetailJobCursor((c) => Math.max(0, c - 1));
+        return;
+      }
+      if (key.downArrow || input === 'j') {
+        setHookDetailJobCursor((c) => Math.min(hookDetailJobCount - 1, c + 1));
+        return;
+      }
+      if (key.return) {
+        if (hookDetailSelectedJob) {
+          setDetailJob(hookDetailSelectedJob);
+          setDetailOrigin('hookDetail');
+          setView('detail');
+        }
+        return;
+      }
+      if (input === 'e') {
+        if (activeDetailHook) {
+          setEditHookId(activeDetailHook.id);
+          setEditHookOrigin('hookDetail');
+          setView('editHook');
+        }
+        return;
+      }
+      if (input === 'c') {
+        if (!hookDetailSelectedJob) return;
+        if (hookDetailSelectedJob.status === 'queued') {
+          getDb()
+            .update(schema.jobs)
+            .set({ status: 'cancelled' })
+            .where(eq(schema.jobs.id, hookDetailSelectedJob.id))
+            .run();
+          notifyChange();
+          flash(`#${hookDetailSelectedJob.id} cancelled`);
+        } else if (hookDetailSelectedJob.status === 'running') {
+          getDb()
+            .update(schema.jobs)
+            .set({ cancelRequestedAt: sql`(unixepoch())` })
+            .where(eq(schema.jobs.id, hookDetailSelectedJob.id))
+            .run();
+          notifyChange();
+          flash(`#${hookDetailSelectedJob.id} cancelling...`);
+        } else {
+          flash('can only cancel queued or running tasks');
+        }
+        return;
+      }
+      if (input === 'r') {
+        if (!hookDetailSelectedJob) return;
+        if (hookDetailSelectedJob.status !== 'failed') {
+          flash('can only retry failed tasks');
+          return;
+        }
+        getDb()
+          .update(schema.jobs)
+          .set({ status: 'queued', runAt: null })
+          .where(eq(schema.jobs.id, hookDetailSelectedJob.id))
+          .run();
+        notifyChange();
+        flash(`#${hookDetailSelectedJob.id} re-queued`);
+        return;
+      }
+      if (input === 'l') {
+        if (!hookDetailSelectedJob) return;
+        const text = `junior task logs ${hookDetailSelectedJob.id}`;
+        copyToClipboard(text).then((ok) => {
+          flash(ok ? `copied: ${text}` : 'clipboard failed');
+        });
+        return;
+      }
+      if (deleteConfirm !== null) {
+        if (input === 'y') {
+          const jobId = deleteConfirm;
+          setDeleteConfirm(null);
+          deleteJob(jobId)
+            .then(() => {
+              flash(`#${jobId} deleted`);
+              notifyChange();
+            })
+            .catch((err) => {
+              flash(`delete failed: ${errorMessage(err)}`);
+            });
+          return;
+        }
+        setDeleteConfirm(null);
+        return;
+      }
+      if (input === 'd') {
+        if (!hookDetailSelectedJob) return;
+        if (pendingD) {
+          if (pendingDTimer.current) clearTimeout(pendingDTimer.current);
+          setPendingD(false);
+          if (hookDetailSelectedJob.status === 'running') {
+            flash('cancel the task before deleting');
+            return;
+          }
+          setDeleteConfirm(hookDetailSelectedJob.id);
+          return;
+        }
+        setPendingD(true);
+        pendingDTimer.current = setTimeout(() => setPendingD(false), DOUBLE_DELETE_TIMEOUT_MS);
+        return;
+      }
+      if (pendingD) {
+        setPendingD(false);
+        if (pendingDTimer.current) clearTimeout(pendingDTimer.current);
+      }
+      return;
+    }
+
+    if (view === 'hooks') {
+      if (key.ctrl && input === 'c') {
+        handleExit();
+        return;
+      }
+      if (key.escape || input === 'h') {
+        setView('list');
+        return;
+      }
+      if (key.upArrow || input === 'k') {
+        setHookCursor((c) => Math.max(0, c - 1));
+        return;
+      }
+      if (key.downArrow || input === 'j') {
+        setHookCursor((c) => Math.min(hooksList.length - 1, c + 1));
+        return;
+      }
+      if (key.return) {
+        if (selectedHook) {
+          setHookDetailId(selectedHook.id);
+          setHookDetailJobCursor(0);
+          setHookDetailJobCount(0);
+          setView('hookDetail');
+        }
+        return;
+      }
+      if (input === 'e') {
+        if (selectedHook) {
+          setEditHookId(selectedHook.id);
+          setEditHookOrigin('hooks');
+          setView('editHook');
+        }
+        return;
+      }
+      if (input === 'p') {
+        if (!selectedHook) return;
+        const db = getDb();
+        const newPaused = selectedHook.paused ? 0 : 1;
+        db.update(schema.hooks).set({ paused: newPaused }).where(eq(schema.hooks.id, selectedHook.id)).run();
+        notifyChange();
+        flash(`#${selectedHook.id} ${newPaused ? 'paused' : 'resumed'}`);
+        return;
+      }
+      if (hookDeleteConfirm !== null) {
+        if (input === 'y') {
+          const id = hookDeleteConfirm;
+          setHookDeleteConfirm(null);
+          getDb().delete(schema.hooks).where(eq(schema.hooks.id, id)).run();
+          notifyChange();
+          flash(`hook #${id} removed`);
+          setHookCursor((c) => Math.min(c, Math.max(0, hooksList.length - 2)));
+          return;
+        }
+        setHookDeleteConfirm(null);
+        return;
+      }
+      if (input === 'd') {
+        if (!selectedHook) return;
+        if (hookPendingD) {
+          if (hookPendingDTimer.current) clearTimeout(hookPendingDTimer.current);
+          setHookPendingD(false);
+          setHookDeleteConfirm(selectedHook.id);
+          return;
+        }
+        setHookPendingD(true);
+        hookPendingDTimer.current = setTimeout(() => setHookPendingD(false), DOUBLE_DELETE_TIMEOUT_MS);
+        return;
+      }
+      if (hookPendingD) {
+        setHookPendingD(false);
+        if (hookPendingDTimer.current) clearTimeout(hookPendingDTimer.current);
+      }
+      return;
+    }
+
     if (view === 'list') {
       if (key.ctrl && input === 'c') {
         handleExit();
@@ -544,6 +781,10 @@ function App() {
         setView('schedules');
         return;
       }
+      if (input === 'h') {
+        setView('hooks');
+        return;
+      }
       if (input === 'f') {
         setFilterIdx((i) => (i + 1) % FILTERS.length);
         setCursor(0);
@@ -668,6 +909,14 @@ function App() {
         setView('addSchedule');
         return true;
       }
+      if (name === '/hooks') {
+        setView('hooks');
+        return true;
+      }
+      if (name === '/new-hook') {
+        setView('addHook');
+        return true;
+      }
       if (name === '/daemon-start' || name === '/daemon start') {
         const { started, pid } = startDaemon();
         flash(started ? `daemon started (PID: ${pid})` : `daemon already running (PID: ${pid})`);
@@ -755,6 +1004,68 @@ function App() {
     setEditScheduleId(null);
   }, [editOrigin]);
 
+  const handleHookSubmit = useCallback(
+    (description: string) => {
+      ensureInit();
+      const db = getDb();
+      const result = db
+        .insert(schema.hooks)
+        .values({ name: description.slice(0, 120), checkFn: 'return false', prompt: description, paused: 1 })
+        .returning()
+        .get();
+      notifyChange();
+      flash(`hook #${result.id} created — extracting...`);
+      setView('input');
+      extractHook(description)
+        .then((extracted) => {
+          getDb()
+            .update(schema.hooks)
+            .set({ name: extracted.name, checkFn: extracted.checkFn, prompt: extracted.prompt, paused: 0 })
+            .where(eq(schema.hooks.id, result.id))
+            .run();
+          notifyChange();
+          flash(`hook #${result.id} ready — press h to view`);
+        })
+        .catch((err) => {
+          flash(`hook #${result.id} extraction failed: ${errorMessage(err)}`);
+        });
+    },
+    [flash],
+  );
+
+  const handleHookCancel = useCallback(() => {
+    setView('input');
+  }, []);
+
+  const editHook = editHookId !== null ? (hooksList.find((h) => h.id === editHookId) ?? null) : null;
+
+  const handleEditHookSubmit = useCallback(
+    (name: string, prompt: string, checkFn: string) => {
+      if (editHookId === null) return;
+      ensureInit();
+      const db = getDb();
+      db.update(schema.hooks).set({ name, prompt, checkFn }).where(eq(schema.hooks.id, editHookId)).run();
+      notifyChange();
+      flash(`hook #${editHookId} updated`);
+      if (editHookOrigin === 'hookDetail') {
+        setView('hookDetail');
+      } else {
+        setView('hooks');
+      }
+      setEditHookId(null);
+    },
+    [editHookId, editHookOrigin, flash],
+  );
+
+  const handleEditHookCancel = useCallback(() => {
+    if (editHookOrigin === 'hookDetail') {
+      setView('hookDetail');
+    } else {
+      setView('hooks');
+    }
+    setEditHookId(null);
+  }, [editHookOrigin]);
+
   const contentHeight = rows - 1;
   const hints = buildHints(
     view,
@@ -765,6 +1076,7 @@ function App() {
     visualAnchor !== null,
     batchDeleteConfirm,
     schedDeleteConfirm,
+    hookDeleteConfirm,
   );
   const inputWidth = Math.min(60, columns - 4);
 
@@ -779,7 +1091,7 @@ function App() {
           <Box height={Math.max(0, Math.floor((contentHeight - 4) / 3))} />
           <Text bold>junior</Text>
           <Text dimColor>dev that never sleeps</Text>
-          <Text dimColor>fire-and-forget tasks, scheduled jobs</Text>
+          <Text dimColor>fire-and-forget, scheduled, or hook jobs</Text>
           <Box marginTop={1}>
             <AddTask
               value={inputValue}
@@ -811,6 +1123,33 @@ function App() {
             title={`edit schedule #${editSchedule.id}`}
           />
         </Box>
+      ) : view === 'addHook' ? (
+        <Box height={contentHeight} flexDirection="column" alignItems="center" justifyContent="center">
+          <AddHook width={inputWidth} onSubmit={handleHookSubmit} onCancel={handleHookCancel} />
+        </Box>
+      ) : view === 'editHook' && editHook ? (
+        <Box height={contentHeight} flexDirection="column" alignItems="center" justifyContent="center">
+          <EditHook
+            key={editHook.id}
+            width={inputWidth}
+            onSubmit={handleEditHookSubmit}
+            onCancel={handleEditHookCancel}
+            initialName={editHook.name}
+            initialPrompt={editHook.prompt}
+            initialCheckFn={editHook.checkFn}
+            title={`edit hook #${editHook.id}`}
+          />
+        </Box>
+      ) : view === 'hookDetail' && activeDetailHook ? (
+        <HookDetail
+          hook={activeDetailHook}
+          jobCursor={hookDetailJobCursor}
+          height={contentHeight}
+          width={columns}
+          onJobCountChange={setHookDetailJobCount}
+        />
+      ) : view === 'hooks' ? (
+        <HookList hooks={hooksList} cursor={hookCursor} height={contentHeight} width={columns} showCursor={true} />
       ) : view === 'scheduleDetail' && activeDetailSchedule ? (
         <ScheduleDetail
           schedule={activeDetailSchedule}

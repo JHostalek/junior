@@ -13,6 +13,7 @@ if (args.length === 0 || args[0] === 'tui') {
   const { ensureInit } = await import('@/db/index.js');
   const { taskCommand, listAction } = await import('@/cli/task.js');
   const { scheduleCommand } = await import('@/cli/schedule.js');
+  const { hookCommand } = await import('@/cli/hook.js');
   const { daemonCommand } = await import('@/cli/daemon.js');
   const { configCommand } = await import('@/cli/config.js');
 
@@ -46,6 +47,7 @@ if (args.length === 0 || args[0] === 'tui') {
 
   program.addCommand(taskCommand);
   program.addCommand(scheduleCommand);
+  program.addCommand(hookCommand);
   program.addCommand(daemonCommand);
   program.addCommand(configCommand);
 

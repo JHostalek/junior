@@ -2,7 +2,19 @@ import { Text } from 'ink';
 import type React from 'react';
 import type { VimMode } from './useVimMode.js';
 
-type View = 'input' | 'list' | 'detail' | 'schedules' | 'scheduleDetail' | 'addSchedule' | 'editSchedule' | 'exiting';
+type View =
+  | 'input'
+  | 'list'
+  | 'detail'
+  | 'schedules'
+  | 'scheduleDetail'
+  | 'addSchedule'
+  | 'editSchedule'
+  | 'hooks'
+  | 'hookDetail'
+  | 'addHook'
+  | 'editHook'
+  | 'exiting';
 
 const FILTER_LABELS = ['all', 'queued', 'running', 'failed', 'done'];
 
@@ -15,6 +27,7 @@ export function buildHints(
   visualMode = false,
   batchDeleteConfirm: number[] | null = null,
   schedDeleteConfirm: number | null = null,
+  hookDeleteConfirm: number | null = null,
 ): React.ReactNode {
   if (view === 'exiting') {
     return (
@@ -126,6 +139,94 @@ export function buildHints(
       </>
     );
   }
+  if (view === 'addHook') {
+    return (
+      <>
+        <Text dimColor>enter</Text>
+        <Text>:submit </Text>
+        <Text dimColor>esc</Text>
+        <Text>:back</Text>
+      </>
+    );
+  }
+  if (view === 'editHook') {
+    return (
+      <>
+        <Text dimColor>enter</Text>
+        <Text>:next </Text>
+        <Text dimColor>esc</Text>
+        <Text>:back </Text>
+        <Text dimColor>ctrl+c</Text>
+        <Text>:cancel</Text>
+      </>
+    );
+  }
+  if (view === 'hookDetail') {
+    if (deleteConfirm !== null) {
+      return (
+        <>
+          <Text color="red" bold>
+            delete #{deleteConfirm}?{' '}
+          </Text>
+          <Text dimColor>y</Text>
+          <Text>:yes </Text>
+          <Text dimColor>any</Text>
+          <Text>:no</Text>
+        </>
+      );
+    }
+    return (
+      <>
+        <Text dimColor>enter</Text>
+        <Text>:open </Text>
+        <Text dimColor>j/k</Text>
+        <Text>:nav </Text>
+        <Text dimColor>e</Text>
+        <Text>:edit </Text>
+        <Text dimColor>dd</Text>
+        <Text>:delete </Text>
+        <Text dimColor>c</Text>
+        <Text>:cancel </Text>
+        <Text dimColor>r</Text>
+        <Text>:retry </Text>
+        <Text dimColor>l</Text>
+        <Text>:logs </Text>
+        <Text dimColor>esc</Text>
+        <Text>:back</Text>
+      </>
+    );
+  }
+  if (view === 'hooks') {
+    if (hookDeleteConfirm !== null) {
+      return (
+        <>
+          <Text color="red" bold>
+            delete hook #{hookDeleteConfirm}?{' '}
+          </Text>
+          <Text dimColor>y</Text>
+          <Text>:yes </Text>
+          <Text dimColor>any</Text>
+          <Text>:no</Text>
+        </>
+      );
+    }
+    return (
+      <>
+        <Text dimColor>enter</Text>
+        <Text>:open </Text>
+        <Text dimColor>j/k</Text>
+        <Text>:nav </Text>
+        <Text dimColor>e</Text>
+        <Text>:edit </Text>
+        <Text dimColor>p</Text>
+        <Text>:pause </Text>
+        <Text dimColor>dd</Text>
+        <Text>:delete </Text>
+        <Text dimColor>esc/h</Text>
+        <Text>:back</Text>
+      </>
+    );
+  }
   if (view === 'schedules') {
     if (schedDeleteConfirm !== null) {
       return (
@@ -222,6 +323,8 @@ export function buildHints(
       <Text>:{FILTER_LABELS[filterIdx]} </Text>
       <Text dimColor>s</Text>
       <Text>:schedules </Text>
+      <Text dimColor>h</Text>
+      <Text>:hooks </Text>
       <Text dimColor>esc/tab</Text>
       <Text>:back</Text>
     </>

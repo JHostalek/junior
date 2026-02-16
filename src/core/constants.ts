@@ -14,3 +14,4 @@ export const DOUBLE_DELETE_TIMEOUT_MS = 500;
 export const TITLE_MAX_LENGTH = 120;
 export const TASK_LIST_LIMIT = 200;
 export const MESSAGE_FLASH_DURATION_MS = 3_000;
+export const HOOK_POLL_INTERVAL_MS = 10_000;

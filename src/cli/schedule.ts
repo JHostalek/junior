@@ -3,7 +3,7 @@ import { Cron } from 'croner';
 import { eq } from 'drizzle-orm';
 import { extractSchedule } from '@/core/claude.js';
 import { ensureInit, getDb, schema } from '@/db/index.js';
-import { cliAction, confirm, getScheduleOrExit, printTable } from './helpers.js';
+import { cliAction, getScheduleOrExit, printTable } from './helpers.js';
 
 export const scheduleCommand = new Command('schedule').description('Manage scheduled tasks');
 
@@ -26,12 +26,6 @@ scheduleCommand
       }
       console.log(`  Prompt: ${extracted.prompt}`);
       console.log();
-
-      const ok = await confirm('Create this schedule?');
-      if (!ok) {
-        console.log('Cancelled.');
-        return;
-      }
 
       ensureInit();
       const db = getDb();

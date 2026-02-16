@@ -35,6 +35,12 @@ export class DaemonError extends JuniorError {
   }
 }
 
+export class HookError extends JuniorError {
+  constructor(message: string) {
+    super(message, 'HookError');
+  }
+}
+
 export class CancelledError extends JuniorError {
   constructor(message: string) {
     super(message, 'CancelledError');

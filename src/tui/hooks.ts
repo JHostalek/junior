@@ -8,6 +8,7 @@ import { ensureInit, getDb, schema } from '@/db/index.js';
 export type Job = typeof schema.jobs.$inferSelect;
 export type Run = typeof schema.runs.$inferSelect;
 export type Schedule = typeof schema.schedules.$inferSelect;
+export type Hook = typeof schema.hooks.$inferSelect;
 
 interface DaemonInfo {
   running: boolean;
@@ -26,6 +27,7 @@ export interface JuniorData {
   counts: JobCounts;
   jobs: Job[];
   schedules: Schedule[];
+  hooks: Hook[];
 }
 
 export function useJuniorData(filter: string | null) {
@@ -34,6 +36,7 @@ export function useJuniorData(filter: string | null) {
     counts: { queued: 0, running: 0, done: 0, failed: 0 },
     jobs: [],
     schedules: [],
+    hooks: [],
   });
   const initialized = useRef(false);
 
@@ -64,8 +67,9 @@ export function useJuniorData(filter: string | null) {
       const jobs = filter ? query.where(eq(schema.jobs.status, filter)).all() : query.all();
 
       const schedules = db.select().from(schema.schedules).all();
+      const hooks = db.select().from(schema.hooks).all();
 
-      setData({ daemon, counts, jobs, schedules });
+      setData({ daemon, counts, jobs, schedules, hooks });
     }
 
     refresh();

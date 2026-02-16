@@ -2,33 +2,6 @@ import { eq } from 'drizzle-orm';
 import { errorMessage } from '@/core/errors.js';
 import { ensureInit, getDb, schema } from '@/db/index.js';
 
-export async function confirm(message: string): Promise<boolean> {
-  process.stdout.write(`${message} [y/N] `);
-
-  if (typeof process.stdin.setRawMode === 'function') {
-    process.stdin.setRawMode(true);
-    process.stdin.resume();
-    const key = await new Promise<string>((resolve) => {
-      process.stdin.once('data', (data) => {
-        resolve(data.toString());
-      });
-    });
-    process.stdin.setRawMode(false);
-    process.stdin.pause();
-    process.stdout.write('\n');
-    return key.toLowerCase() === 'y';
-  }
-
-  const line = await new Promise<string>((resolve) => {
-    process.stdin.resume();
-    process.stdin.once('data', (data) => {
-      resolve(data.toString().trim());
-    });
-  });
-  process.stdin.pause();
-  return line.toLowerCase() === 'y' || line.toLowerCase() === 'yes';
-}
-
 export function cliAction<T extends unknown[]>(
   fn: (...args: T) => void | Promise<void>,
 ): (...args: T) => Promise<void> {
@@ -70,6 +43,21 @@ export function getScheduleOrExit(id: string) {
     process.exit(1);
   }
   return schedule;
+}
+
+export function getHookOrExit(id: string) {
+  ensureInit();
+  const db = getDb();
+  const hook = db
+    .select()
+    .from(schema.hooks)
+    .where(eq(schema.hooks.id, Number(id)))
+    .get();
+  if (!hook) {
+    console.error(`Hook with ID ${id} not found.`);
+    process.exit(1);
+  }
+  return hook;
 }
 
 interface Column {

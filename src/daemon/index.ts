@@ -5,6 +5,7 @@ import { DaemonError, errorMessage } from '@/core/errors.js';
 import { watchChanges } from '@/core/events.js';
 import { info, error as logError } from '@/core/logger.js';
 import { ensureInit, getDb, schema } from '@/db/index.js';
+import { loadHooks, stopAllHooks } from './hooks.js';
 import { startPollLoop, stopPollLoop } from './loop.js';
 import { isDaemonRunning, removePidFile, writePidFile } from './pid.js';
 import { recoverOrphanedJobs } from './recovery.js';
@@ -63,6 +64,7 @@ async function gracefulShutdown(): Promise<void> {
     stopWatchingChanges = null;
   }
   stopAllSchedules();
+  stopAllHooks();
   stopHeartbeat();
 
   await stopPollLoop(SHUTDOWN_TIMEOUT_MS);
@@ -93,7 +95,11 @@ export async function daemonMain(): Promise<void> {
   await recoverOrphanedJobs();
   startHeartbeat();
   loadSchedules();
-  stopWatchingChanges = watchChanges(() => loadSchedules());
+  loadHooks();
+  stopWatchingChanges = watchChanges(() => {
+    loadSchedules();
+    loadHooks();
+  });
   startPollLoop(POLL_INTERVAL_MS);
 
   const onShutdown = () => {

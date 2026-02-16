@@ -98,6 +98,23 @@ const migrations: Migration[] = [
       ALTER TABLE schedules_new RENAME TO schedules;
     `,
   },
+  {
+    tag: '0006_hooks',
+    sql: `
+      CREATE TABLE hooks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        name TEXT NOT NULL,
+        check_fn TEXT NOT NULL,
+        prompt TEXT NOT NULL,
+        state_json TEXT NOT NULL DEFAULT '{}',
+        paused INTEGER DEFAULT 0 NOT NULL,
+        last_checked_at INTEGER,
+        last_triggered_at INTEGER,
+        created_at INTEGER DEFAULT (unixepoch()) NOT NULL
+      );
+      ALTER TABLE jobs ADD COLUMN hook_id INTEGER REFERENCES hooks(id) ON DELETE SET NULL;
+    `,
+  },
 ];
 
 export default migrations;

@@ -15,6 +15,7 @@ export const jobs = sqliteTable('jobs', {
   baseBranch: text('base_branch').notNull(),
   branch: text('branch'),
   scheduleId: integer('schedule_id').references(() => schedules.id, { onDelete: 'set null' }),
+  hookId: integer('hook_id').references(() => hooks.id, { onDelete: 'set null' }),
   runAt: integer('run_at'),
   sessionId: text('session_id'),
   cancelRequestedAt: integer('cancel_requested_at'),
@@ -50,6 +51,18 @@ export const schedules = sqliteTable('schedules', {
   prompt: text('prompt').notNull().default(''),
   lastRunAt: integer('last_run_at'),
   nextRunAt: integer('next_run_at'),
+  createdAt: timestamps.createdAt,
+});
+
+export const hooks = sqliteTable('hooks', {
+  id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  checkFn: text('check_fn').notNull(),
+  prompt: text('prompt').notNull(),
+  stateJson: text('state_json').notNull().default('{}'),
+  paused: integer('paused').notNull().default(0),
+  lastCheckedAt: integer('last_checked_at'),
+  lastTriggeredAt: integer('last_triggered_at'),
   createdAt: timestamps.createdAt,
 });
 

@@ -1,0 +1,42 @@
+import { Box, Text } from 'ink';
+import { useCallback, useState } from 'react';
+import { TextInput } from './TextInput.js';
+
+interface Props {
+  width: number;
+  onSubmit: (description: string) => void;
+  onCancel: () => void;
+}
+
+export function AddHook({ width, onSubmit, onCancel }: Props) {
+  const [description, setDescription] = useState('');
+
+  const handleSubmit = useCallback(
+    (val: string) => {
+      const trimmed = val.trim();
+      if (!trimmed) return;
+      onSubmit(trimmed);
+    },
+    [onSubmit],
+  );
+
+  const formWidth = Math.min(60, width - 4);
+
+  return (
+    <Box flexDirection="column" width={formWidth}>
+      <Box borderStyle="round" borderColor="gray" flexDirection="column" paddingX={1}>
+        <Text dimColor>new hook — describe trigger and action</Text>
+        <Box marginTop={0}>
+          <TextInput
+            value={description}
+            onChange={setDescription}
+            onSubmit={handleSubmit}
+            onEscape={onCancel}
+            focus={true}
+            placeholder="whenever main changes, review the diff"
+          />
+        </Box>
+      </Box>
+    </Box>
+  );
+}
