@@ -1,0 +1,26 @@
+pre-commit:
+  parallel: true
+  commands:
+    lint-fix:
+      glob: "*.{ts,tsx,js,jsx,json}"
+      run: bun run lint:fix && git add {staged_files}
+      stage_fixed: true
+    typecheck:
+      glob: "*.{ts,tsx}"
+      run: bun run typecheck
+    gitleaks:
+      run: gitleaks protect --staged --no-banner
+    check-large-files:
+      run: |
+        for file in {staged_files}; do
+          size=$(wc -c < "$file" 2>/dev/null || echo 0)
+          if [ "$size" -gt 1048576 ]; then
+            echo "ERROR: $file is larger than 1MB ($size bytes)"
+            exit 1
+          fi
+        done
+
+commit-msg:
+  commands:
+    commitlint:
+      run: bunx commitlint --edit {1}

@@ -1,0 +1,16 @@
+export const ACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+export const WATCHDOG_INTERVAL_MS = 30_000;
+export const HEARTBEAT_INTERVAL_MS = 30_000;
+export const POLL_INTERVAL_MS = 5_000;
+export const SHUTDOWN_TIMEOUT_MS = 60_000;
+export const DAEMON_STOP_TIMEOUT_MS = 10_000;
+export const DAEMON_STOP_POLL_MS = 500;
+export const TUI_FALLBACK_POLL_MS = 10_000;
+export const LOG_WATCH_INTERVAL_MS = 500;
+export const CANCEL_CHECK_INTERVAL_MS = 2_000;
+export const KILL_ESCALATION_MS = 5_000;
+export const USAGE_THROTTLE_MS = 3_000;
+export const DOUBLE_DELETE_TIMEOUT_MS = 500;
+export const TITLE_MAX_LENGTH = 120;
+export const TASK_LIST_LIMIT = 200;
+export const MESSAGE_FLASH_DURATION_MS = 3_000;
