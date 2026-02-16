@@ -26,6 +26,7 @@ import { buildHints } from './hints.js';
 import { useJuniorData } from './hooks.js';
 import { ScheduleDetail, useScheduleJobs } from './ScheduleDetail.js';
 import { ScheduleList } from './ScheduleList.js';
+import { SectionBar } from './SectionBar.js';
 import { StatusBar } from './StatusBar.js';
 import { TaskDetail } from './TaskDetail.js';
 import { TaskList } from './TaskList.js';
@@ -1086,7 +1087,8 @@ function App() {
     setEditHookId(null);
   }, [editHookOrigin]);
 
-  const contentHeight = rows - 1;
+  const showSectionBar = isTopLevel(view);
+  const contentHeight = rows - 1 - (showSectionBar ? 1 : 0);
   const hints = buildHints(
     view,
     filterIdx,
@@ -1102,6 +1104,7 @@ function App() {
 
   return (
     <Box flexDirection="column" width={columns} height={rows}>
+      {showSectionBar && <SectionBar activeView={view} width={columns} />}
       {view === 'exiting' ? (
         <Box height={contentHeight} flexDirection="column" alignItems="center" justifyContent="center">
           <ExitDialog onConfirm={handleExitChoice} onCancel={handleExitCancel} onRememberChange={setExitRemember} />
