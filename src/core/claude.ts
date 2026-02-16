@@ -6,6 +6,12 @@ import type { ClaudeResult } from './types.js';
 
 export const CLAUDE_COMMAND = Flag.claudePath;
 
+function cleanEnv(): Record<string, string | undefined> {
+  const env = { ...process.env };
+  delete env.CLAUDECODE;
+  return env;
+}
+
 export interface ExtractedSchedule {
   name: string;
   cron: string;
@@ -34,6 +40,7 @@ export async function extractSchedule(input: string): Promise<ExtractedSchedule>
     stdin: 'ignore',
     stdout: 'pipe',
     stderr: 'pipe',
+    env: cleanEnv(),
   });
 
   let output: string;
@@ -114,6 +121,7 @@ export async function extractHook(input: string): Promise<ExtractedHook> {
     stdin: 'ignore',
     stdout: 'pipe',
     stderr: 'pipe',
+    env: cleanEnv(),
   });
 
   let output: string;
@@ -148,8 +156,25 @@ export async function extractHook(input: string): Promise<ExtractedHook> {
   return extractedHookSchema.parse(parsed);
 }
 
+const WORKER_PREAMBLE = [
+  'You are a worker agent running inside the junior framework. Before implementing code changes, consider',
+  "whether the task can be accomplished using junior's built-in features:",
+  '- `junior hook add "<description>"` — Create reactive hooks that monitor conditions and auto-create tasks (e.g., "notify me when main changes")',
+  '- `junior schedule add "<description>"` — Create scheduled recurring tasks',
+  '',
+  "Prefer using framework features over modifying the codebase when the user's request matches a framework capability.",
+  '',
+].join('\n');
+
 export function buildClaudeArgs(prompt: string): string[] {
-  return ['-p', prompt, '--output-format', 'stream-json', '--verbose', '--dangerously-skip-permissions'];
+  return [
+    '-p',
+    WORKER_PREAMBLE + prompt,
+    '--output-format',
+    'stream-json',
+    '--verbose',
+    '--dangerously-skip-permissions',
+  ];
 }
 
 export function buildMergeConflictPrompt(worktreePath: string): string {
@@ -178,6 +203,7 @@ export async function translateCron(input: string): Promise<string> {
     stdin: 'ignore',
     stdout: 'pipe',
     stderr: 'pipe',
+    env: cleanEnv(),
   });
 
   let output: string;
