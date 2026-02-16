@@ -31,10 +31,17 @@ prefer the CLI? run `junior --help` for the full command reference.
 ## features
 
 - **fire and forget** — describe a task, walk away. it queues, executes, and merges while you do something else.
+  > *"remove redundant comments"*, *"hunt for silent fallbacks and fix them"*
 - **nothing breaks** — every task runs in its own git branch. your working tree stays clean.
 - **parallel execution** — configurable concurrency. queue 10 things, let them cook at the same time.
-- **scheduled jobs** — cron-based recurring tasks. say "every weekday at 9am" and it figures out the cron for you.
 - **attach context** — paste images, reference files with `@`, so claude knows exactly what you mean.
+  > *"align recent commits with our visual identity @docs/identity.md"*
+- **defer work** — postpone tasks for later.
+  > *"refactor the auth middleware"* — in 30 minutes
+- **scheduled jobs** — cron-based recurring tasks.
+  > *"run the test suite and fix anything broken"* — every weekday at 9am
+- **hooks** — react to file changes automatically.
+  > *"regenerate API docs"* — whenever `src/api/**` changes
 - **real-time TUI** — vim-ish keybindings (`j/k`, `dd`, visual mode), live status updates, filter by state.
 - **batch operations** — select multiple tasks, cancel/retry/delete them all at once.
 
