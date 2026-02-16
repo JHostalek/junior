@@ -53,7 +53,9 @@ export function buildHints(
         <Text dimColor>dd/x</Text>
         <Text>:delete </Text>
         <Text dimColor>tab</Text>
-        <Text>:tasks </Text>
+        <Text>:next </Text>
+        <Text dimColor>1-4</Text>
+        <Text>:jump </Text>
         <Text dimColor>ctrl+c</Text>
         <Text>:quit</Text>
       </>
@@ -62,7 +64,9 @@ export function buildHints(
         <Text dimColor>esc</Text>
         <Text>:normal </Text>
         <Text dimColor>tab</Text>
-        <Text>:tasks </Text>
+        <Text>:next </Text>
+        <Text dimColor>1-4</Text>
+        <Text>:jump </Text>
         <Text dimColor>ctrl+c</Text>
         <Text>:quit</Text>
       </>
@@ -222,8 +226,12 @@ export function buildHints(
         <Text>:pause </Text>
         <Text dimColor>dd</Text>
         <Text>:delete </Text>
-        <Text dimColor>esc/h</Text>
-        <Text>:back</Text>
+        <Text dimColor>tab</Text>
+        <Text>:next </Text>
+        <Text dimColor>1-4</Text>
+        <Text>:jump </Text>
+        <Text dimColor>esc</Text>
+        <Text>:home</Text>
       </>
     );
   }
@@ -253,8 +261,12 @@ export function buildHints(
         <Text>:pause </Text>
         <Text dimColor>dd</Text>
         <Text>:delete </Text>
-        <Text dimColor>esc/s</Text>
-        <Text>:back</Text>
+        <Text dimColor>tab</Text>
+        <Text>:next </Text>
+        <Text dimColor>1-4</Text>
+        <Text>:jump </Text>
+        <Text dimColor>esc</Text>
+        <Text>:home</Text>
       </>
     );
   }
@@ -321,12 +333,12 @@ export function buildHints(
       <Text>:logs </Text>
       <Text dimColor>f</Text>
       <Text>:{FILTER_LABELS[filterIdx]} </Text>
-      <Text dimColor>s</Text>
-      <Text>:schedules </Text>
-      <Text dimColor>h</Text>
-      <Text>:hooks </Text>
-      <Text dimColor>esc/tab</Text>
-      <Text>:back</Text>
+      <Text dimColor>tab</Text>
+      <Text>:next </Text>
+      <Text dimColor>1-4</Text>
+      <Text>:jump </Text>
+      <Text dimColor>esc</Text>
+      <Text>:home</Text>
     </>
   );
 }

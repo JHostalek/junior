@@ -46,6 +46,13 @@ type View =
   | 'editHook'
   | 'exiting';
 
+const TOP_LEVEL_SECTIONS = ['input', 'list', 'schedules', 'hooks'] as const;
+type TopLevelSection = (typeof TOP_LEVEL_SECTIONS)[number];
+
+function isTopLevel(v: View): v is TopLevelSection {
+  return (TOP_LEVEL_SECTIONS as readonly string[]).includes(v);
+}
+
 const FILTERS = [null, 'queued', 'running', 'failed', 'done'] as const;
 
 function App() {
@@ -195,8 +202,41 @@ function App() {
     setView('input');
   }, []);
 
+  const navigateToSection = useCallback(
+    (section: TopLevelSection) => {
+      if (view === 'list' && visualAnchor !== null) {
+        setVisualAnchor(null);
+        setBatchDeleteConfirm(null);
+      }
+      setView(section);
+    },
+    [view, visualAnchor],
+  );
+
   useInput((input, key) => {
     if (view === 'exiting') return;
+
+    if (isTopLevel(view)) {
+      if (view === 'input' && inputMode === 'insert' && inputValueRef.current.length > 0) {
+        // fall through — don't intercept tab/number keys while typing
+      } else {
+        if (key.tab) {
+          const idx = TOP_LEVEL_SECTIONS.indexOf(view);
+          const next = key.shift
+            ? TOP_LEVEL_SECTIONS[(idx - 1 + TOP_LEVEL_SECTIONS.length) % TOP_LEVEL_SECTIONS.length]
+            : TOP_LEVEL_SECTIONS[(idx + 1) % TOP_LEVEL_SECTIONS.length];
+          navigateToSection(next);
+          return;
+        }
+        const numMap: Record<string, TopLevelSection> = { '1': 'input', '2': 'list', '3': 'schedules', '4': 'hooks' };
+        const target = numMap[input];
+        if (target && target !== view) {
+          navigateToSection(target);
+          return;
+        }
+        if (target && target === view) return;
+      }
+    }
 
     if (view === 'input') {
       if (key.ctrl && input === 'c') {
@@ -206,12 +246,6 @@ function App() {
           setInputValue('');
         }
         return;
-      }
-      if (inputMode === 'normal' || inputValueRef.current.length === 0) {
-        if (key.tab) {
-          setView('list');
-          return;
-        }
       }
       return;
     }
@@ -364,8 +398,8 @@ function App() {
         handleExit();
         return;
       }
-      if (key.escape || input === 's') {
-        setView('list');
+      if (key.escape) {
+        setView('input');
         return;
       }
       if (key.upArrow || input === 'k') {
@@ -563,8 +597,8 @@ function App() {
         handleExit();
         return;
       }
-      if (key.escape || input === 'h') {
-        setView('list');
+      if (key.escape) {
+        setView('input');
         return;
       }
       if (key.upArrow || input === 'k') {
@@ -643,12 +677,6 @@ function App() {
         if (key.escape) {
           setVisualAnchor(null);
           setBatchDeleteConfirm(null);
-          return;
-        }
-        if (key.tab) {
-          setVisualAnchor(null);
-          setBatchDeleteConfirm(null);
-          setView('input');
           return;
         }
         if (key.upArrow || input === 'k') {
@@ -754,7 +782,7 @@ function App() {
         return;
       }
 
-      if (key.tab || key.escape) {
+      if (key.escape) {
         setView('input');
         return;
       }
@@ -775,14 +803,6 @@ function App() {
       }
       if (input === 'v') {
         if (jobs.length > 0) setVisualAnchor(cursor);
-        return;
-      }
-      if (input === 's') {
-        setView('schedules');
-        return;
-      }
-      if (input === 'h') {
-        setView('hooks');
         return;
       }
       if (input === 'f') {
@@ -962,7 +982,7 @@ function App() {
             .where(eq(schema.schedules.id, result.id))
             .run();
           notifyChange();
-          flash(`schedule #${result.id} ready — press s to view`);
+          flash(`schedule #${result.id} ready — press 3 to view`);
         })
         .catch((err) => {
           flash(`schedule #${result.id} extraction failed: ${errorMessage(err)}`);
@@ -1024,7 +1044,7 @@ function App() {
             .where(eq(schema.hooks.id, result.id))
             .run();
           notifyChange();
-          flash(`hook #${result.id} ready — press h to view`);
+          flash(`hook #${result.id} ready — press 4 to view`);
         })
         .catch((err) => {
           flash(`hook #${result.id} extraction failed: ${errorMessage(err)}`);
