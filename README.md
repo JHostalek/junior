@@ -14,6 +14,8 @@ background daemon that picks up tasks, spins up isolated git worktrees, lets Cla
 git clone https://github.com/JHostalek/junior.git && cd junior
 bun install && bun run build
 ln -s "$(pwd)/dist/junior" /usr/local/bin/junior
+cp .mcp.json.example .mcp.json
+# edit .mcp.json to point to your junior-mcp binary path
 ```
 
 needs [Bun](https://bun.sh) and [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)

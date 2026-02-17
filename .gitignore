@@ -58,6 +58,7 @@ secrets.yaml
 **/modular-mcp.json
 opencode.json
 !.rulesync/.aiignore
+.rulesync/mcp.json
 .vscode/
 
 # OS files

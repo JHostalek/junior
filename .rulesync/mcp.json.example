@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "junior": {
+      "command": "/absolute/path/to/junior-mcp/dist/junior-mcp"
+    }
+  }
+}
