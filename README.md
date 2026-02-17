@@ -6,7 +6,7 @@ queue prompts. schedule jobs. claude codes. you sleep.
 
 background daemon that picks up tasks, spins up isolated git worktrees, lets Claude Code do the work, and merges results back.
 
-> **Heads up:** Junior runs Claude Code in headless mode with `--dangerously-skip-permissions`. That means full autonomy — file writes, shell commands, git operations — no human approval prompts. You are responsible for what you point it at.
+> **Heads up:** Junior runs Claude Code in headless mode with `--dangerously-skip-permissions` and clears the `CLAUDECODE` env var that normally prevents Claude Code from spawning nested instances. That means full autonomy — file writes, shell commands, git operations, and the ability to invoke Claude Code recursively — no human approval prompts. You are responsible for what you point it at.
 
 ## install
 
