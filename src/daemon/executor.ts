@@ -25,6 +25,7 @@ import {
   generateBranchName,
   generateScheduledBranchName,
   getCurrentBranch,
+  hasCommitsAhead,
   isBranchMerged,
   isMergeInProgress,
   removeSymlinks,
@@ -331,9 +332,14 @@ export async function executeJob(job: typeof schema.jobs.$inferSelect): Promise<
         throw new ClaudeError(`Finalize agent exited with code ${finalizeResult.exitCode}`);
       }
 
-      const merged = await isBranchMerged(job.repoPath, branchName, job.baseBranch);
-      if (!merged) {
-        throw new ClaudeError('Finalize agent completed but merge was not performed');
+      const hadChanges = await hasCommitsAhead(worktreePath, job.baseBranch);
+      if (hadChanges) {
+        const merged = await isBranchMerged(job.repoPath, branchName, job.baseBranch);
+        if (!merged) {
+          throw new ClaudeError('Finalize agent completed but merge was not performed');
+        }
+      } else {
+        info('No changes to merge, marking job as done', { jobId: job.id });
       }
     } catch (finalizeErr) {
       warn('Finalize failed, restoring repo state', { jobId: job.id, error: errorMessage(finalizeErr) });
