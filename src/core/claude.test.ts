@@ -3,16 +3,15 @@ import { buildClaudeArgs, buildFinalizeArgs, buildFinalizePrompt, parseClaudeOut
 import { ClaudeError } from './errors.js';
 
 describe('buildClaudeArgs', () => {
-  test('returns correct argument array for a prompt', () => {
+  test('includes worker preamble before the prompt', () => {
     const args = buildClaudeArgs('fix the bug');
-    expect(args).toEqual([
-      '-p',
-      'fix the bug',
-      '--output-format',
-      'stream-json',
-      '--verbose',
-      '--dangerously-skip-permissions',
-    ]);
+    expect(args[0]).toBe('-p');
+    expect(args[1]).toContain('autonomous worker agent');
+    expect(args[1]).toEndWith('\nfix the bug');
+    expect(args).toContain('--output-format');
+    expect(args).toContain('stream-json');
+    expect(args).toContain('--verbose');
+    expect(args).toContain('--dangerously-skip-permissions');
   });
 });
 

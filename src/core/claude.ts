@@ -156,8 +156,18 @@ export async function extractHook(input: string): Promise<ExtractedHook> {
   return extractedHookSchema.parse(parsed);
 }
 
+const WORKER_PREAMBLE = [
+  'You are an autonomous worker agent in the Junior framework.',
+  'Execute the task completely. Do not ask for confirmation, do not explain what you would do — just do it.',
+  'You have access to the `junior` CLI and MCP tools (mcp__junior__*) for managing schedules, hooks, and tasks.',
+  'If the task involves creating a schedule, hook, or task, use the MCP tools or run `junior schedule add`, `junior hook add`, or `junior task add` directly.',
+  '',
+  'Task:',
+].join('\n');
+
 export function buildClaudeArgs(prompt: string): string[] {
-  return ['-p', prompt, '--output-format', 'stream-json', '--verbose', '--dangerously-skip-permissions'];
+  const fullPrompt = `${WORKER_PREAMBLE}\n${prompt}`;
+  return ['-p', fullPrompt, '--output-format', 'stream-json', '--verbose', '--dangerously-skip-permissions'];
 }
 
 export interface FinalizePromptOptions {
