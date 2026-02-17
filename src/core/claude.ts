@@ -156,25 +156,8 @@ export async function extractHook(input: string): Promise<ExtractedHook> {
   return extractedHookSchema.parse(parsed);
 }
 
-const WORKER_PREAMBLE = [
-  'You are a worker agent running inside the junior framework. Before implementing code changes, consider',
-  "whether the task can be accomplished using junior's built-in features:",
-  '- `junior hook add "<description>"` — Create reactive hooks that monitor conditions and auto-create tasks (e.g., "notify me when main changes")',
-  '- `junior schedule add "<description>"` — Create scheduled recurring tasks',
-  '',
-  "Prefer using framework features over modifying the codebase when the user's request matches a framework capability.",
-  '',
-].join('\n');
-
 export function buildClaudeArgs(prompt: string): string[] {
-  return [
-    '-p',
-    WORKER_PREAMBLE + prompt,
-    '--output-format',
-    'stream-json',
-    '--verbose',
-    '--dangerously-skip-permissions',
-  ];
+  return ['-p', prompt, '--output-format', 'stream-json', '--verbose', '--dangerously-skip-permissions'];
 }
 
 export interface FinalizePromptOptions {

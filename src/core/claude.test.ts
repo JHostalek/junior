@@ -3,14 +3,16 @@ import { buildClaudeArgs, buildFinalizeArgs, buildFinalizePrompt, parseClaudeOut
 import { ClaudeError } from './errors.js';
 
 describe('buildClaudeArgs', () => {
-  test('returns correct argument array with worker preamble prepended', () => {
+  test('returns correct argument array for a prompt', () => {
     const args = buildClaudeArgs('fix the bug');
-    expect(args[0]).toBe('-p');
-    expect(args[1]).toContain('junior framework');
-    expect(args[1]).toContain('junior hook add');
-    expect(args[1]).toContain('junior schedule add');
-    expect(args[1]).toEndWith('fix the bug');
-    expect(args.slice(2)).toEqual(['--output-format', 'stream-json', '--verbose', '--dangerously-skip-permissions']);
+    expect(args).toEqual([
+      '-p',
+      'fix the bug',
+      '--output-format',
+      'stream-json',
+      '--verbose',
+      '--dangerously-skip-permissions',
+    ]);
   });
 });
 
