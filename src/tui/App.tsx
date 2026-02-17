@@ -333,8 +333,8 @@ function App() {
       }
       if (input === 'r') {
         if (!schedDetailSelectedJob) return;
-        if (schedDetailSelectedJob.status !== 'failed') {
-          flash('can only retry failed tasks');
+        if (schedDetailSelectedJob.status === 'queued' || schedDetailSelectedJob.status === 'running') {
+          flash('can only retry failed, cancelled, or done tasks');
           return;
         }
         getDb()
@@ -532,8 +532,8 @@ function App() {
       }
       if (input === 'r') {
         if (!hookDetailSelectedJob) return;
-        if (hookDetailSelectedJob.status !== 'failed') {
-          flash('can only retry failed tasks');
+        if (hookDetailSelectedJob.status === 'queued' || hookDetailSelectedJob.status === 'running') {
+          flash('can only retry failed, cancelled, or done tasks');
           return;
         }
         getDb()
@@ -716,10 +716,12 @@ function App() {
           return;
         }
         if (input === 'r') {
-          const failed = selectedJobs.filter((j) => j.status === 'failed');
-          const skipped = selectedJobs.length - failed.length;
-          if (failed.length === 0) {
-            flash('no failed tasks in selection');
+          const retryable = selectedJobs.filter(
+            (j) => j.status === 'failed' || j.status === 'cancelled' || j.status === 'done',
+          );
+          const skipped = selectedJobs.length - retryable.length;
+          if (retryable.length === 0) {
+            flash('no retryable tasks in selection');
             return;
           }
           getDb()
@@ -728,12 +730,13 @@ function App() {
             .where(
               inArray(
                 schema.jobs.id,
-                failed.map((j) => j.id),
+                retryable.map((j) => j.id),
               ),
             )
             .run();
           notifyChange();
-          const msg = skipped > 0 ? `${failed.length} re-queued (${skipped} skipped)` : `${failed.length} re-queued`;
+          const msg =
+            skipped > 0 ? `${retryable.length} re-queued (${skipped} skipped)` : `${retryable.length} re-queued`;
           flash(msg);
           setVisualAnchor(null);
           return;
@@ -832,8 +835,8 @@ function App() {
       }
       if (input === 'r') {
         if (!selectedJob) return;
-        if (selectedJob.status !== 'failed') {
-          flash('can only retry failed tasks');
+        if (selectedJob.status === 'queued' || selectedJob.status === 'running') {
+          flash('can only retry failed, cancelled, or done tasks');
           return;
         }
         getDb()

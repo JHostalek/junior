@@ -8,6 +8,7 @@ import { notifyChange } from '@/core/events.js';
 import { forceDeleteBranch, getCurrentBranch, pruneWorktrees, removeWorktree } from '@/core/git.js';
 import { warn } from '@/core/logger.js';
 import { getRepoPath, getWorktreesDir } from '@/core/paths.js';
+import type { JobStatus } from '@/core/types.js';
 import { ensureInit, getDb, schema } from '@/db/index.js';
 import { cliAction, getJobOrExit, printTable } from './helpers.js';
 
@@ -138,15 +139,16 @@ taskCommand
 
 taskCommand
   .command('retry')
-  .description('Re-queue a failed task')
+  .description('Re-queue a completed, failed, or cancelled task')
   .argument('<id>', 'Task ID')
   .action(
     cliAction((id: string) => {
       const job = getJobOrExit(id);
       const db = getDb();
 
-      if (job.status !== 'failed') {
-        console.error(`Task #${id} is ${job.status}, can only retry failed tasks.`);
+      const retryable: JobStatus[] = ['failed', 'cancelled', 'done'];
+      if (!retryable.includes(job.status as JobStatus)) {
+        console.error(`Task #${id} is ${job.status}, can only retry failed, cancelled, or done tasks.`);
         process.exit(1);
       }
 
