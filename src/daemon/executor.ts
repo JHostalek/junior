@@ -260,6 +260,7 @@ export async function executeJob(job: typeof schema.jobs.$inferSelect): Promise<
 
     const childEnv = { ...process.env };
     delete childEnv.CLAUDECODE;
+    childEnv.JUNIOR_HOME = job.repoPath;
 
     info('Spawning Worker Claude', { jobId: job.id });
     const workerProcess = Bun.spawn([CLAUDE_COMMAND, ...buildClaudeArgs(job.prompt)], {

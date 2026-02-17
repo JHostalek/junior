@@ -3,7 +3,8 @@ import os from 'node:os';
 import path from 'node:path';
 
 export function getJuniorHome(): string {
-  return path.join(process.cwd(), '.junior');
+  const base = process.env.JUNIOR_HOME ?? process.cwd();
+  return path.join(base, '.junior');
 }
 
 export function getDbPath(): string {
@@ -31,7 +32,7 @@ export function getAttachmentsDir(): string {
 }
 
 export function getRepoPath(): string {
-  return process.cwd();
+  return process.env.JUNIOR_HOME ?? process.cwd();
 }
 
 export function ensureDirectories(): void {

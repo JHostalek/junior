@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { ensureDirectories, resolvePath } from './paths.js';
+import { ensureDirectories, getJuniorHome, getRepoPath, resolvePath } from './paths.js';
 
 describe('ensureDirectories', () => {
   let tmpDir: string;
@@ -34,6 +34,42 @@ describe('ensureDirectories', () => {
     expect(fs.existsSync(path.join(tmpDir, '.junior', 'logs'))).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, '.junior', 'worktrees'))).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, '.junior', 'attachments'))).toBe(true);
+  });
+});
+
+describe('JUNIOR_HOME override', () => {
+  let originalJuniorHome: string | undefined;
+
+  beforeEach(() => {
+    originalJuniorHome = process.env.JUNIOR_HOME;
+  });
+
+  afterEach(() => {
+    if (originalJuniorHome === undefined) {
+      delete process.env.JUNIOR_HOME;
+    } else {
+      process.env.JUNIOR_HOME = originalJuniorHome;
+    }
+  });
+
+  test('getJuniorHome uses JUNIOR_HOME when set', () => {
+    process.env.JUNIOR_HOME = '/custom/repo';
+    expect(getJuniorHome()).toBe(path.join('/custom/repo', '.junior'));
+  });
+
+  test('getJuniorHome falls back to cwd when JUNIOR_HOME is unset', () => {
+    delete process.env.JUNIOR_HOME;
+    expect(getJuniorHome()).toBe(path.join(process.cwd(), '.junior'));
+  });
+
+  test('getRepoPath uses JUNIOR_HOME when set', () => {
+    process.env.JUNIOR_HOME = '/custom/repo';
+    expect(getRepoPath()).toBe('/custom/repo');
+  });
+
+  test('getRepoPath falls back to cwd when JUNIOR_HOME is unset', () => {
+    delete process.env.JUNIOR_HOME;
+    expect(getRepoPath()).toBe(process.cwd());
   });
 });
 
