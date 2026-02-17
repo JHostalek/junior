@@ -1,6 +1,6 @@
 {
   "name": "junior",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Autonomous software development automation CLI - queue tasks, schedule them, and execute via headless Claude Code",
   "license": "MIT",
   "author": "Jan Hostalek",
