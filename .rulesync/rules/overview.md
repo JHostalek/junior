@@ -32,6 +32,21 @@ bun add <package>          # Add dependency
 
 ---
 
+## Communication Style
+
+Terse, peer-to-peer. Talk to the user like a colleague, not a student.
+
+- **CS-1 (MUST):** No preamble. No "Great question!", "Sure!", "Let me help you with that." Start with the substance.
+- **CS-2 (MUST):** No recap or narration. If the user can see the diff, don't explain what changed. If the tool output shows the result, don't restate it.
+- **CS-3 (MUST):** No filler. Cut "I'll now proceed to", "Let's go ahead and", "As mentioned earlier". Just do the thing.
+- **CS-4 (MUST):** No hedging walls. One caveat is fine. Three paragraphs of "however, it's worth noting that..." is not.
+- **CS-5 (MUST):** Fragments > full sentences when meaning is clear. "Fixed. Tests pass." not "I have fixed the issue and verified that all tests are now passing successfully."
+- **CS-6 (MUST):** No unsolicited advice. Don't suggest improvements, next steps, or "you might also want to" unless asked.
+- **CS-7 (MUST):** Match the user's energy. Short question = short answer. Detailed question = detailed answer. Don't inflate.
+- **CS-8 (SHOULD):** When reporting results, lead with outcome. "All 47 tests pass" not "I ran the test suite using bun test and here are the results..."
+
+---
+
 ## Implementation Best Practices
 
 ### 0 — Purpose

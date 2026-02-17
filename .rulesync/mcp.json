@@ -1,5 +1,7 @@
 {
   "mcpServers": {
-
+    "junior": {
+      "command": "/Users/Jan.Hostalek/Documents/junior-mcp/dist/junior-mcp"
+    }
   }
 }
