@@ -27,4 +27,9 @@ Set up isolated feature development with git worktrees.
    - Command to open in a new Claude Code session: `claude --cwd {directory}`
    - Lifecycle reminder: use `/git` to commit, `/pr` to create PR, then `/worktree-clean` from the main repo to clean up
 
-5. List all active worktrees: `git worktree list`
+5. Symlink essential gitignored files/dirs from the main repo into the worktree so tooling works:
+   - `node_modules` (for commitlint, build tools)
+   - `.env` (if present)
+   Only symlink — never copy.
+
+6. List all active worktrees: `git worktree list`
