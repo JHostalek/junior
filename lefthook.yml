@@ -1,3 +1,6 @@
+output:
+  - failure
+
 pre-commit:
   parallel: true
   commands:
@@ -19,6 +22,16 @@ pre-commit:
             exit 1
           fi
         done
+
+post-merge:
+  commands:
+    rulesync:
+      run: command -v npx >/dev/null 2>&1 && npx rulesync generate --features '*' || true
+
+post-checkout:
+  commands:
+    rulesync:
+      run: command -v npx >/dev/null 2>&1 && npx rulesync generate --features '*' || true
 
 commit-msg:
   commands:
