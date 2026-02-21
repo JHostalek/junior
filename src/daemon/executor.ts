@@ -34,6 +34,7 @@ import {
   tryPopJuniorStash,
 } from '@/core/git.js';
 import { info, error as logError, warn } from '@/core/logger.js';
+import { detectMcp } from '@/core/mcp.js';
 import { getLogsDir, getWorktreesDir } from '@/core/paths.js';
 import { getDb, getSqlite, schema } from '@/db/index.js';
 
@@ -262,14 +263,18 @@ export async function executeJob(job: typeof schema.jobs.$inferSelect): Promise<
     delete childEnv.CLAUDECODE;
     childEnv.JUNIOR_HOME = job.repoPath;
 
-    info('Spawning Worker Claude', { jobId: job.id });
-    const workerProcess = Bun.spawn([CLAUDE_COMMAND, ...buildClaudeArgs(job.prompt)], {
-      cwd: worktreePath,
-      stdin: 'ignore',
-      stdout: 'pipe',
-      stderr: 'pipe',
-      env: childEnv,
-    });
+    const mcp = detectMcp(job.repoPath);
+    info('Spawning Worker Claude', { jobId: job.id, mcpAvailable: mcp.available });
+    const workerProcess = Bun.spawn(
+      [CLAUDE_COMMAND, ...buildClaudeArgs({ prompt: job.prompt, mcpConfigPath: mcp.configPath })],
+      {
+        cwd: worktreePath,
+        stdin: 'ignore',
+        stdout: 'pipe',
+        stderr: 'pipe',
+        env: childEnv,
+      },
+    );
 
     db.update(schema.runs)
       .set({ pid: workerProcess.pid, updatedAt: sql`(unixepoch())` })

@@ -2,6 +2,8 @@ import { Command } from 'commander';
 import { Cron } from 'croner';
 import { eq } from 'drizzle-orm';
 import { extractSchedule } from '@/core/claude.js';
+import { detectMcp } from '@/core/mcp.js';
+import { getRepoPath } from '@/core/paths.js';
 import { ensureInit, getDb, schema } from '@/db/index.js';
 import { cliAction, getScheduleOrExit, printTable } from './helpers.js';
 
@@ -14,6 +16,11 @@ scheduleCommand
   .option('--paused', 'Create in paused state')
   .action(
     cliAction(async (description: string, opts: { paused?: boolean }) => {
+      const mcp = detectMcp(getRepoPath());
+      if (!mcp.available) {
+        console.warn("Warning: Junior MCP not configured. Worker agents won't have MCP tools.");
+        console.warn('See README for setup instructions.\n');
+      }
       console.log('Extracting schedule...');
       const extracted = await extractSchedule(description);
 

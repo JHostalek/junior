@@ -1,10 +1,16 @@
 import { describe, expect, test } from 'bun:test';
-import { buildClaudeArgs, buildFinalizeArgs, buildFinalizePrompt, parseClaudeOutput } from './claude.js';
+import {
+  buildClaudeArgs,
+  buildFinalizeArgs,
+  buildFinalizePrompt,
+  buildWorkerPreamble,
+  parseClaudeOutput,
+} from './claude.js';
 import { ClaudeError } from './errors.js';
 
 describe('buildClaudeArgs', () => {
-  test('includes worker preamble before the prompt', () => {
-    const args = buildClaudeArgs('fix the bug');
+  test('includes worker preamble before the prompt without MCP', () => {
+    const args = buildClaudeArgs({ prompt: 'fix the bug' });
     expect(args[0]).toBe('-p');
     expect(args[1]).toContain('autonomous worker agent');
     expect(args[1]).toEndWith('\nfix the bug');
@@ -12,6 +18,34 @@ describe('buildClaudeArgs', () => {
     expect(args).toContain('stream-json');
     expect(args).toContain('--verbose');
     expect(args).toContain('--dangerously-skip-permissions');
+    expect(args).not.toContain('--mcp-config');
+  });
+
+  test('includes --mcp-config when mcpConfigPath is provided', () => {
+    const args = buildClaudeArgs({ prompt: 'fix the bug', mcpConfigPath: '/repo/.mcp.json' });
+    const idx = args.indexOf('--mcp-config');
+    expect(idx).toBeGreaterThan(-1);
+    expect(args[idx + 1]).toBe('/repo/.mcp.json');
+    expect(args[1]).toContain('mcp__junior__');
+  });
+
+  test('MCP unavailable preamble tells agent not to use MCP tools', () => {
+    const args = buildClaudeArgs({ prompt: 'do stuff' });
+    expect(args[1]).toContain('Do not attempt to create schedules, hooks, or tasks');
+    expect(args[1]).not.toContain('mcp__junior__');
+  });
+});
+
+describe('buildWorkerPreamble', () => {
+  test('mentions MCP tools when available', () => {
+    const preamble = buildWorkerPreamble(true);
+    expect(preamble).toContain('mcp__junior__');
+  });
+
+  test('warns against MCP usage when unavailable', () => {
+    const preamble = buildWorkerPreamble(false);
+    expect(preamble).toContain('Do not attempt to create schedules, hooks, or tasks');
+    expect(preamble).not.toContain('mcp__junior__');
   });
 });
 

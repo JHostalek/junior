@@ -1,6 +1,8 @@
 import { Command } from 'commander';
 import { eq } from 'drizzle-orm';
 import { extractHook } from '@/core/claude.js';
+import { detectMcp } from '@/core/mcp.js';
+import { getRepoPath } from '@/core/paths.js';
 import { ensureInit, getDb, schema } from '@/db/index.js';
 import { cliAction, getHookOrExit, printTable } from './helpers.js';
 
@@ -13,6 +15,11 @@ hookCommand
   .option('--paused', 'Create in paused state')
   .action(
     cliAction(async (description: string, opts: { paused?: boolean }) => {
+      const mcp = detectMcp(getRepoPath());
+      if (!mcp.available) {
+        console.warn("Warning: Junior MCP not configured. Worker agents won't have MCP tools.");
+        console.warn('See README for setup instructions.\n');
+      }
       console.log('Extracting hook...');
       const extracted = await extractHook(description);
 
