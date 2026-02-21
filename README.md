@@ -4,9 +4,35 @@ queue prompts. schedule jobs. claude codes. you sleep.
 
 ## what it does
 
-background daemon that picks up tasks, spins up isolated git worktrees, lets Claude Code do the work, and merges results back.
+background daemon for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (CC). tasks run in isolated git worktrees and merge back automatically. it runs your CC with all your MCP servers, so anything claude can reach — Slack, Linear, Notion, databases — junior can use unattended.
 
-> **Heads up:** Junior runs Claude Code in headless mode with `--dangerously-skip-permissions` and clears the `CLAUDECODE` env var that normally prevents Claude Code from spawning nested instances. That means full autonomy — file writes, shell commands, git operations, and the ability to invoke Claude Code recursively — no human approval prompts. You are responsible for what you point it at.
+> **Heads up:** Junior runs CC in headless mode with `--dangerously-skip-permissions` and clears the `CLAUDECODE` env var that normally prevents CC from spawning nested instances. That means full autonomy — file writes, shell commands, git operations, and the ability to invoke CC recursively — no human approval prompts. You are responsible for what you point it at.
+
+## features
+
+**fire and forget** — describe a task, walk away. parallel execution, isolated branches.
+
+> *"add input validation to every public API endpoint using zod"*
+>
+> *"generate unit tests for `src/core/` — aim for edge cases, not coverage theater"*
+
+**schedules** — recurring tasks on a cron.
+
+> *"every weekday at 9am, review open Sentry issues and fix anything with a clear stack trace"*
+>
+> *"every monday morning, post a summary of last week's merged PRs to #engineering in Slack"*
+>
+> *"every sunday, check for outdated dependencies and open PRs for safe upgrades"*
+>
+> *"every night, query Grafana for error rate spikes and create Linear tickets for new anomalies"*
+
+**hooks** — trigger tasks when conditions change.
+
+> *"whenever `src/api/**` changes, regenerate the OpenAPI spec and update client types"*
+>
+> *"when a new branch matching `release/*` appears, review the diff and generate release notes"*
+>
+> *"if `package.json` changes, verify lockfile integrity and check for known vulnerabilities"*
 
 ## install
 
@@ -14,41 +40,19 @@ background daemon that picks up tasks, spins up isolated git worktrees, lets Cla
 brew tap jhostalek/tap && brew install junior
 ```
 
-needs [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
-
 ## usage
 
 ```bash
 cd your-project
 junior init    # one-time setup
-junior         # open the TUI — everything happens here
+junior         # open the TUI
 ```
 
-prefer the CLI? run `junior --help` for the full command reference.
-
-## features
-
-- **fire and forget** — describe a task, walk away. it queues, executes, and merges while you do something else.
-  > *"remove redundant comments"*, *"hunt for silent fallbacks and fix them"*
-- **nothing breaks** — every task runs in its own git branch. your working tree stays clean.
-- **parallel execution** — configurable concurrency. queue 10 things, let them cook at the same time.
-- **attach context** — paste images, reference files with `@`, so claude knows exactly what you mean.
-  > *"align recent commits with our visual identity @docs/identity.md"*
-- **defer work** — postpone tasks for later.
-  > *"refactor the auth middleware"* — in 30 minutes
-- **scheduled jobs** — cron-based recurring tasks.
-  > *"run the test suite and fix anything broken"* — every weekday at 9am
-- **hooks** — react to file changes automatically.
-  > *"regenerate API docs"* — whenever `src/api/**` changes
-- **real-time TUI** — vim-ish keybindings (`j/k`, `dd`, visual mode), live status updates, filter by state.
-- **batch operations** — select multiple tasks, cancel/retry/delete them all at once.
-- **self-organizing** — with the [MCP server](#mcp-server), the agent creates follow-up tasks, sets schedules, and registers hooks mid-execution. one prompt bootstraps an entire pipeline.
+`junior --help` for the full command reference.
 
 ## mcp server
 
-**you want this.** without it the worker agent is blind — it can edit files and run commands, but can't see the task queue, create follow-ups, set schedules, or register hooks. with it, junior actually works as designed.
-
-> *"run tests every morning at 9am"* — the agent creates the schedule itself instead of writing a note about it.
+**you want this.** gives the worker agent access to the task queue, schedules, and hooks — so it can create follow-ups, set recurring jobs, and register hooks mid-run.
 
 add to your project's `.mcp.json`:
 
