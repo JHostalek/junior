@@ -12,7 +12,7 @@ Quick reference for parsing Claude Code session transcripts.
 │       └── {uuid}.jsonl              # Full conversation transcript
 ```
 
-Path encoding: `/Users/Jan/Documents/myproject` -> `-Users-Jan-Documents-myproject`
+Path encoding: `/Users/user/Documents/myproject` -> `-Users-user-Documents-myproject`
 
 ## Sessions Index Structure
 

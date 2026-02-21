@@ -135,11 +135,7 @@ This is what Intern appends to `./CLAUDE.md`:
 ## Example Git Commit
 
 ```
-commit abc1234567890
-Author: Claude Code <claude@anthropic.com>
-Date:   Fri Feb 21 00:00:12 2026 +0100
-
-    intern: add 1 skill, 2 rules, consolidate 1
+intern: add 1 skill, 2 rules, consolidate 1
 
     Patterns detected: 7 (3 above threshold)
     Skills added: config-edit-test
