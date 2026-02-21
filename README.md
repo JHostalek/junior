@@ -16,27 +16,6 @@ brew tap jhostalek/tap && brew install junior
 
 needs [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
 
-### MCP server (optional but recommended)
-
-junior spawns Claude Code headless to run your tasks. by default it can only edit files and run commands. the MCP server gives the worker agent `mcp__junior__*` tools — so a task like *"run tests every morning at 9am"* can actually create the schedule itself instead of just writing a note about it.
-
-what it unlocks: tasks, schedules, hooks, daemon control — all callable by the worker agent mid-execution.
-
-add to your project's `.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "junior": {
-      "command": "npx",
-      "args": ["-y", "@jhostalek/junior-mcp"]
-    }
-  }
-}
-```
-
-without it: tasks still run fine, but the agent can't self-organize (create follow-up tasks, set up schedules, register hooks). with it: full loop — one prompt can bootstrap an entire automation pipeline.
-
 ## usage
 
 ```bash
@@ -63,6 +42,26 @@ prefer the CLI? run `junior --help` for the full command reference.
   > *"regenerate API docs"* — whenever `src/api/**` changes
 - **real-time TUI** — vim-ish keybindings (`j/k`, `dd`, visual mode), live status updates, filter by state.
 - **batch operations** — select multiple tasks, cancel/retry/delete them all at once.
+- **self-organizing** — with the [MCP server](#mcp-server), the agent creates follow-up tasks, sets schedules, and registers hooks mid-execution. one prompt bootstraps an entire pipeline.
+
+## mcp server
+
+**you want this.** without it the worker agent is blind — it can edit files and run commands, but can't see the task queue, create follow-ups, set schedules, or register hooks. with it, junior actually works as designed.
+
+> *"run tests every morning at 9am"* — the agent creates the schedule itself instead of writing a note about it.
+
+add to your project's `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "junior": {
+      "command": "npx",
+      "args": ["-y", "@jhostalek/junior-mcp"]
+    }
+  }
+}
+```
 
 ## license
 
