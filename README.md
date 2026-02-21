@@ -2,9 +2,7 @@
 
 queue prompts. schedule jobs. claude codes. you sleep.
 
-<p align="center">
-  <img src="demo/demo.gif" alt="Junior TUI demo" width="800" />
-</p>
+<img src="demo/demo.gif" alt="Junior TUI demo" width="800" />
 
 ## what it does
 
@@ -56,7 +54,7 @@ junior         # open the TUI
 
 ## mcp server
 
-**you want this.** gives the worker agent access to the task queue, schedules, and hooks — so it can create follow-ups, set recurring jobs, and register hooks mid-run.
+**you want this.** the [`junior-mcp`](https://github.com/JHostalek/junior-mcp) server gives the worker agent access to the task queue, schedules, and hooks — so it can create follow-ups, set recurring jobs, and register hooks mid-run.
 
 add to your project's `.mcp.json`:
 
