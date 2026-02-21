@@ -6,7 +6,7 @@ queue prompts. schedule jobs. claude codes. you sleep.
 
 background daemon for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). you describe tasks — junior queues them, runs each in an isolated git worktree, and merges results back. it runs your Claude Code with all your MCP servers, so anything claude can reach — Slack, Linear, Notion, calendars, databases — junior can use unattended.
 
-> **Heads up:** runs Claude Code with `--dangerously-skip-permissions`. full autonomy — file writes, shell commands, git ops, no approval prompts. you are responsible for what you point it at.
+> **Heads up:** Junior runs Claude Code in headless mode with `--dangerously-skip-permissions` and clears the `CLAUDECODE` env var that normally prevents Claude Code from spawning nested instances. That means full autonomy — file writes, shell commands, git operations, and the ability to invoke Claude Code recursively — no human approval prompts. You are responsible for what you point it at.
 
 ## features
 
