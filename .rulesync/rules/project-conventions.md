@@ -81,7 +81,6 @@ Human-initiated feature work uses `/tmp/` worktrees (ephemeral, auto-cleaned on 
 - Switch back to main repo
 - `/worktree-clean /tmp/{repo}-feature-foo` → remove worktree + delete branch
 
-**Distinction**: `.junior/worktrees/` is for the daemon's automated job execution. `/tmp/` worktrees are for interactive developer sessions.
 
 ## Gotchas
 
