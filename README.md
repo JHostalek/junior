@@ -10,7 +10,7 @@ background daemon for [Claude Code](https://docs.anthropic.com/en/docs/claude-co
 
 ## features
 
-**fire and forget** — describe it, walk away. isolated branch, auto-merge. queue 10 at once, they run in parallel.
+**fire and forget** — describe it, walk away. isolated branch, auto-merge, parallel execution.
 
 > *"add input validation to every public API endpoint using zod"*
 >
