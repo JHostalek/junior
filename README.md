@@ -34,14 +34,6 @@ background daemon for [Claude Code](https://docs.anthropic.com/en/docs/claude-co
 >
 > *"if `package.json` changes, verify lockfile integrity and check for known vulnerabilities"*
 
-**context** — paste images from clipboard, reference files with `@`.
-
-**self-organizing** — with the [MCP server](#mcp-server), the agent creates follow-up tasks, schedules, and hooks mid-run.
-
-> *"set up CI monitoring for this repo"* — agent creates a daily test schedule, a hook to catch failures, and a follow-up task for fixes. from one prompt.
-
-**TUI** — visual multi-select, bulk operations, filter by state. or use the CLI.
-
 ## install
 
 ```bash
@@ -60,7 +52,9 @@ junior         # open the TUI
 
 ## mcp server
 
-**you want this.** gives the worker agent access to the task queue, schedules, and hooks. without it, junior can't self-organize.
+**you want this.** gives the worker agent access to the task queue, schedules, and hooks — so it can create follow-ups, set recurring jobs, and register hooks mid-run. one prompt can bootstrap an entire workflow.
+
+> *"set up CI monitoring for this repo"* — agent creates a daily test schedule, a hook to catch failures, and a follow-up task for fixes.
 
 add to your project's `.mcp.json`:
 
