@@ -4,29 +4,19 @@ queue prompts. schedule jobs. claude codes. you sleep.
 
 ## what it does
 
-background daemon that picks up tasks, spins up isolated git worktrees, lets Claude Code do the work, and merges results back. you describe what needs to happen — junior handles when and how.
+background daemon for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). you describe tasks — junior queues them, runs each in an isolated git worktree, and merges results back. it runs your Claude Code with all your MCP servers, so anything claude can reach — Slack, Linear, Notion, calendars, databases — junior can use unattended.
 
-the key insight: **junior runs your Claude Code instance.** every MCP server you've connected, every tool claude can reach — notifications, calendars, Slack, databases, deployments — junior can use them too. unattended.
-
-> **Heads up:** Junior runs Claude Code in headless mode with `--dangerously-skip-permissions` and clears the `CLAUDECODE` env var that normally prevents Claude Code from spawning nested instances. That means full autonomy — file writes, shell commands, git operations, and the ability to invoke Claude Code recursively — no human approval prompts. You are responsible for what you point it at.
+> **Heads up:** runs Claude Code with `--dangerously-skip-permissions`. full autonomy — file writes, shell commands, git ops, no approval prompts. you are responsible for what you point it at.
 
 ## features
 
-### fire and forget
+**fire and forget** — describe it, walk away. isolated branch, auto-merge. queue 10 at once, they run in parallel.
 
-describe a task in plain english. junior queues it, executes it in an isolated branch, and merges the result. you don't babysit.
-
-> *"remove all `console.log` statements and replace with structured logging"*
->
 > *"add input validation to every public API endpoint using zod"*
 >
 > *"generate unit tests for `src/core/` — aim for edge cases, not coverage theater"*
 
-queue 10 tasks at once. they run in parallel across isolated worktrees. nothing conflicts. your working tree stays clean.
-
-### schedules — the cron you always wanted
-
-recurring tasks described in plain english. junior translates them to cron expressions.
+**schedules** — recurring tasks in plain english. junior translates to cron.
 
 > *"run the full test suite every weekday at 9am. if anything fails, fix it."*
 >
@@ -34,50 +24,25 @@ recurring tasks described in plain english. junior translates them to cron expre
 >
 > *"check for outdated dependencies every sunday and open PRs for safe upgrades"*
 
-think about what you'd do if you had a junior dev who never forgot, never got bored, and worked weekends:
+a few more ideas: nightly security sweeps. daily standup digests sent as notifications. continuous API doc regeneration. scheduled lint enforcement across the entire repo.
 
-- **daily standup digest** — summarize yesterday's commits, open PRs, and failing tests. send a notification.
-- **continuous documentation** — regenerate API docs from source every night. no drift.
-- **security sweeps** — scan for hardcoded secrets, vulnerable patterns, or OWASP issues on a schedule.
-- **style enforcement** — lint and auto-fix code style across the entire repo. nightly.
-
-### hooks — react to what happens
-
-hooks watch for conditions and trigger tasks automatically when something changes.
+**hooks** — trigger tasks when conditions are met. checks run on a polling interval.
 
 > *"whenever `src/api/**` changes, regenerate the OpenAPI spec and update client types"*
 >
-> *"when a new branch matching `release/*` is created, run the full integration test suite"*
+> *"when a new branch matching `release/*` appears, review the diff and generate release notes"*
 >
 > *"if `package.json` changes, verify lockfile integrity and check for known vulnerabilities"*
 
-hooks turn junior from a task runner into an event-driven system:
+more: auto-review when PR branches appear. deploy gates that run smoke tests when `main` gets new commits. schema sync when migrations change.
 
-- **auto-review** — when a PR branch appears, run a code review and post findings.
-- **deploy gate** — when `main` gets new commits, run smoke tests before the deploy pipeline.
-- **schema sync** — when DB migrations change, regenerate TypeScript types and API schemas.
+**context** — paste images from clipboard, reference files with `@`. claude sees what you mean.
 
-### it goes further than code
+**self-organizing** — with the [MCP server](#mcp-server), the executing agent creates follow-up tasks, sets schedules, and registers hooks mid-run. one prompt bootstraps entire workflows.
 
-junior inherits everything your Claude Code session can do. if you've connected MCP servers for Slack, email, Linear, Notion, GitHub, or anything else — junior can use them in tasks, schedules, and hooks.
+> *"set up CI monitoring for this repo"* — agent creates a daily test schedule, a hook to catch failures, and a follow-up task template for fixes. one sentence.
 
-> *"every morning at 9am, summarize overnight commits and post to #engineering in Slack"*
->
-> *"when CI fails on main, create a Linear ticket with the error details and assign it to on-call"*
->
-> *"after every successful deploy, update the release notes in Notion"*
-
-this is not a feature we built. it's a consequence of running your Claude Code. whatever tools you give claude, junior gets for free.
-
-### self-organizing
-
-with the [MCP server](#mcp-server), the executing agent can create follow-up tasks, set schedules, and register hooks mid-run. one prompt bootstraps entire workflows.
-
-> *"set up CI monitoring for this repo"* — the agent creates a schedule to run tests daily, a hook to catch failures, and a follow-up task template for fixes. from one sentence.
-
-### TUI + batch ops
-
-real-time terminal UI with vim keybindings (`j/k`, `dd`, visual mode). live status, filter by state, select multiple tasks and cancel/retry/delete in bulk. or use the CLI — `junior --help` for everything.
+**TUI** — real-time terminal UI. visual multi-select, bulk cancel/retry/delete, filter by state. or use the CLI.
 
 ## install
 
@@ -85,23 +50,19 @@ real-time terminal UI with vim keybindings (`j/k`, `dd`, visual mode). live stat
 brew tap jhostalek/tap && brew install junior
 ```
 
-needs [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
-
 ## usage
 
 ```bash
 cd your-project
 junior init    # one-time setup
-junior         # open the TUI — everything happens here
+junior         # open the TUI
 ```
 
-prefer the CLI? run `junior --help` for the full command reference.
+`junior --help` for the full command reference.
 
 ## mcp server
 
-**you want this.** without it the worker agent is blind — it can edit files and run commands, but can't see the task queue, create follow-ups, set schedules, or register hooks. with it, junior actually works as designed.
-
-> *"run tests every morning at 9am"* — the agent creates the schedule itself instead of writing a note about it.
+**you want this.** without it the worker agent can edit files and run commands, but can't see the task queue, create follow-ups, set schedules, or register hooks. with it, junior works as designed.
 
 add to your project's `.mcp.json`:
 
