@@ -2,6 +2,10 @@
 
 queue prompts. schedule jobs. claude codes. you sleep.
 
+<p align="center">
+  <img src="demo/demo.gif" alt="Junior TUI demo" width="800" />
+</p>
+
 ## what it does
 
 background daemon for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (CC). tasks run in isolated git worktrees and merge back automatically. it runs your CC with all your MCP servers, so anything claude can reach — Slack, Linear, Notion, databases — junior can use unattended.
