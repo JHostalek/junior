@@ -14,9 +14,9 @@ Sessions analyzed: 12 (last 3 days)
 Patterns detected: 7 (3 above threshold)
 
 Changes written:
-  [+] New skill: config-edit-test (.claude/skills/config-edit-test/SKILL.md)
-  [+] New rule: "Use const over let" (./CLAUDE.md)
-  [+] New rule: "Run lint before commit" (./CLAUDE.md)
+  [+] New skill: config-edit-test (.rulesync/skills/config-edit-test/SKILL.md)
+  [+] New rule: "Use const over let" (.rulesync/rules/intern-generated.md)
+  [+] New rule: "Run lint before commit" (.rulesync/rules/intern-generated.md)
   [~] Consolidated: css-helper + tailwind-setup → tailwind-styles
   [!] Flagged stale: old-formatter (unused 21 days)
 
@@ -55,8 +55,8 @@ WARNING: Context budget at 87% (26,100/30,000 chars)
   Overlap detected: api-scaffold + endpoint-generator (72% overlap)
 
 Changes written:
-  [+] New rule: "Always add error boundaries to React components" (./CLAUDE.md)
-  [+] New rule: "Use zod for runtime validation" (./CLAUDE.md)
+  [+] New rule: "Always add error boundaries to React components" (.rulesync/rules/intern-generated.md)
+  [+] New rule: "Use zod for runtime validation" (.rulesync/rules/intern-generated.md)
   [~] Consolidated: api-scaffold + endpoint-generator → api-builder
   [!] Flagged stale: legacy-formatter (unused 18 days)
 
@@ -67,7 +67,7 @@ Commit: def5678 "intern: add 2 rules, consolidate 1, flag 1 stale"
 
 ## Example Generated Skill
 
-This is what a generated `.claude/skills/config-edit-test/SKILL.md` looks like:
+This is what a generated `.rulesync/skills/config-edit-test/SKILL.md` looks like:
 
 ```yaml
 ---
@@ -120,7 +120,7 @@ and running tests. Detected across 4 sessions where this sequence was performed 
 
 ## Example CLAUDE.md Rule Addition
 
-This is what Intern appends to `./CLAUDE.md`:
+This is what Intern appends to `.rulesync/rules/intern-generated.md`:
 
 ```markdown
 ## Variable Declarations

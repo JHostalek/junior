@@ -72,7 +72,7 @@ For corrections that should become behavioral rules rather than standalone skill
 | Applies to this project only | `./CLAUDE.md` |
 | Personal preference, not for team | `./.claude.local.md` |
 | Applies to a specific directory/module | `./{path}/CLAUDE.md` |
-| Topic-specific rule collection | `./.claude/rules/{topic}.md` |
+| Topic-specific rule collection | `./.rulesync/rules/{topic}.md` |
 
 ## Skill Type Selection
 

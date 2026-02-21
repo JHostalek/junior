@@ -3,7 +3,7 @@
 #
 # Usage: inventory-skills.sh
 #
-# Scans ~/.claude/skills/ and .claude/skills/ for SKILL.md files.
+# Scans ~/.claude/skills/ and .rulesync/skills/ for SKILL.md files.
 # Outputs JSON with name, description, description_chars for each skill,
 # plus total budget usage.
 
@@ -89,13 +89,13 @@ if [[ -d "${HOME}/.claude/skills" ]]; then
 fi
 
 # Scan project skills
-if [[ -d ".claude/skills" ]]; then
+if [[ -d ".rulesync/skills" ]]; then
     while IFS= read -r skill_file; do
         info=$(extract_skill_info "$skill_file")
         chars=$(echo "$info" | jq '.description_chars')
         TOTAL_CHARS=$((TOTAL_CHARS + chars))
         SKILLS=$(echo "$SKILLS" | jq --argjson s "$info" '. + [$s + {scope: "project"}]')
-    done < <(find ".claude/skills" -name "SKILL.md" -type f 2>/dev/null)
+    done < <(find ".rulesync/skills" -name "SKILL.md" -type f 2>/dev/null)
 fi
 
 # Output inventory

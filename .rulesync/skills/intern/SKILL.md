@@ -158,7 +158,7 @@ mkdir -p {skills_dir}/{skill-name}/
 ```
 
 Target directory priority:
-1. If in a git repo with `.claude/skills/`: write to `.claude/skills/{name}/SKILL.md`
+1. If in a git repo with `.rulesync/skills/`: write to `.rulesync/skills/{name}/SKILL.md`
 2. Otherwise: write to `~/.claude/skills/{name}/SKILL.md`
 
 ### CLAUDE.md Rules
@@ -167,8 +167,8 @@ Append rules to the appropriate file using Edit:
 | Rule scope | Target file |
 |-----------|-------------|
 | Universal behavior | `~/.claude/CLAUDE.md` |
-| Project-specific | `./CLAUDE.md` |
-| Path-scoped | `./{path}/CLAUDE.md` |
+| Project-specific | `.rulesync/rules/{topic}.md` |
+| Path-scoped | `.rulesync/rules/{path}-{topic}.md` |
 
 When appending, respect the existing file structure. Add a section header if one
 doesn't exist for the rule category. Include an HTML comment with provenance metadata:
@@ -213,9 +213,9 @@ Sessions analyzed: {count} (last {days} days)
 Patterns detected: {count} ({above_threshold} above threshold)
 
 Changes written:
-  [+] New skill: config-edit-test (.claude/skills/config-edit-test/SKILL.md)
-  [+] New rule: "Use const over let" (./CLAUDE.md)
-  [+] New rule: "Run lint before commit" (./CLAUDE.md)
+  [+] New skill: config-edit-test (.rulesync/skills/config-edit-test/SKILL.md)
+  [+] New rule: "Use const over let" (.rulesync/rules/intern-generated.md)
+  [+] New rule: "Run lint before commit" (.rulesync/rules/intern-generated.md)
   [~] Consolidated: css-helper + tailwind-setup → tailwind-styles
   [!] Flagged stale: old-formatter (unused 21 days)
 
