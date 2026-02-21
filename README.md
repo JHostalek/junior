@@ -52,9 +52,7 @@ junior         # open the TUI
 
 ## mcp server
 
-**you want this.** gives the worker agent access to the task queue, schedules, and hooks — so it can create follow-ups, set recurring jobs, and register hooks mid-run. one prompt can bootstrap an entire workflow.
-
-> *"set up CI monitoring for this repo"* — agent creates a daily test schedule, a hook to catch failures, and a follow-up task for fixes.
+**you want this.** gives the worker agent access to the task queue, schedules, and hooks — so it can create follow-ups, set recurring jobs, and register hooks mid-run.
 
 add to your project's `.mcp.json`:
 
