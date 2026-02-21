@@ -35,7 +35,7 @@ jobs:
 
       - name: Trigger Homebrew tap update
         env:
-          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
         run: |
           gh workflow run update-formula.yml \
             --repo JHostalek/homebrew-tap \
