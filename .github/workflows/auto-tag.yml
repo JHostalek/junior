@@ -1,0 +1,35 @@
+name: Auto-tag on version bump
+
+on:
+  push:
+    branches: [main]
+    paths: [package.json]
+
+jobs:
+  auto-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Check version change
+        id: version
+        run: |
+          CURRENT="v$(jq -r .version package.json)"
+          LATEST=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
+          if [ "$CURRENT" != "$LATEST" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create and push tag
+        if: steps.version.outputs.changed == 'true'
+        run: |
+          TAG="${{ steps.version.outputs.current }}"
+          git tag "$TAG"
+          git push origin "$TAG"

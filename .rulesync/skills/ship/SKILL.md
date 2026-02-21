@@ -1,8 +1,8 @@
 ---
 name: ship
 description: >-
-  Build, tag, and release junior via GitHub. Bumps version, runs quality gates,
-  builds binary, commits, tags, and pushes to trigger the release workflow.
+  Release junior. Bumps version, runs quality gates, creates release branch +
+  PR. Merging the PR auto-tags and triggers the release pipeline.
 ---
 version_bump = $ARGUMENTS
 
@@ -19,35 +19,39 @@ version_bump = $ARGUMENTS
 
 2. **Verify branch**: `git branch --show-current` — abort if not on `main`
 
-3. **Quality gates** (abort on any failure):
+3. **Pull latest**: `git pull origin main`
+
+4. **Quality gates** (abort on any failure):
    - Lint + Format: `bun run lint:fix`
    - Typecheck: `bun run typecheck`
    - Tests: `bun test`
    - Build: `bun run build`
 
-4. **Version bump**:
+5. **Version bump**:
    - Read current version from `package.json`
    - If `version_bump` provided, use it (patch/minor/major)
    - If not provided, default to `patch`
    - Compute new version (e.g. 1.0.0 → 1.0.1 for patch)
-   - Update version in `package.json` AND `src/index.ts` (Commander `.version()` call)
    - Report: `1.0.0 → 1.0.1`
 
-5. **Confirm with user**: Show new version and ask for go/no-go before committing
+6. **Confirm with user**: Show new version and ask for go/no-go
 
-6. **Commit version bump**:
-   - Stage `package.json` and `src/index.ts`
-   - Commit: `chore: bump version to <new_version>`
+7. **Create release branch**: `git checkout -b release/v<new_version>`
 
-7. **Tag and push**: `git tag v<new_version> && git push && git push --tags`
+8. **Update version** in both locations:
+   - `package.json` → `"version": "<new_version>"`
+   - `src/index.ts` → `.version('<new_version>')`
 
-8. **Report**:
-   - The push of `v*` tag triggers `.github/workflows/release.yml` which:
-     - Builds the binary on macOS
-     - Creates a GitHub Release with the tarball
-     - Triggers Homebrew tap formula update in `JHostalek/homebrew-tap`
-   - Link: `https://github.com/JHostalek/junior/actions`
-   - Tell user to watch the Actions run for the release + tap update
+9. **Commit**: Stage `package.json` and `src/index.ts`, commit `chore: bump version to <new_version>`
+
+10. **Push + open PR**:
+    - `git push -u origin release/v<new_version>`
+    - Create PR targeting `main` with title `chore: release v<new_version>`
+    - PR body: `Bumps version from <old> to <new>. Merging auto-tags and triggers release pipeline.`
+
+11. **Report**:
+    - PR URL
+    - "Merge the PR → CI auto-tags `v<new_version>` → builds binary → creates GitHub Release → updates Homebrew tap"
 
 ## Version Locations
 
@@ -55,13 +59,20 @@ Both must be updated in sync:
 - `package.json` → `"version": "x.y.z"`
 - `src/index.ts` → `.version('x.y.z')`
 
+## What Happens After Merge
+
+CI handles everything automatically:
+1. `auto-tag.yml` detects version change on main → creates `v<version>` tag
+2. Tag push triggers `release.yml` → builds binary, creates GitHub Release
+3. `release.yml` triggers Homebrew tap formula update
+
 ## What This Skill Does NOT Do
 
+- Tag (CI auto-tags on merge)
 - Build the release tarball (CI does that)
 - Update the Homebrew formula (CI triggers tap repo workflow)
 - Publish to npm (this project distributes via Homebrew)
 
 ## Dangerous Operations (require explicit user confirmation)
 
-- Pushing tags (triggers CI release pipeline)
-- Force-pushing
+- Version bump confirmation before committing
