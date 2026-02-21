@@ -19,7 +19,7 @@ if (args.length === 0 || args[0] === 'tui') {
 
   const program = new Command();
 
-  program.name('junior').version('0.1.0').description('Autonomous software development automation CLI');
+  program.name('junior').version('1.0.0').description('Autonomous software development automation CLI');
 
   program
     .command('init')

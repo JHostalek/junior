@@ -32,6 +32,6 @@
     }
   },
   "files": {
-    "includes": ["src/**", "*.json", "*.ts", "!dist", "!node_modules", "!.junior"]
+    "includes": ["src/**", "*.json", "*.ts", "!dist", "!node_modules", "!.junior", "!.claude"]
   }
 }

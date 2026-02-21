@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install
+
+      - run: bun run build
+
+      - name: Package binary
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          ARCHIVE="junior-macos-arm64-${VERSION}.tar.gz"
+          tar -czf "${ARCHIVE}" -C dist junior
+          echo "ARCHIVE=${ARCHIVE}" >> $GITHUB_ENV
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ARCHIVE }}
+          generate_release_notes: true
+
+      - name: Trigger Homebrew tap update
+        env:
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: |
+          gh workflow run update-formula.yml \
+            --repo JHostalek/homebrew-tap \
+            -f formula=junior \
+            -f tag="${VERSION}" \
+            -f repository=JHostalek/junior
