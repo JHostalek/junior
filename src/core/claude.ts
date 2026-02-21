@@ -156,18 +156,41 @@ export async function extractHook(input: string): Promise<ExtractedHook> {
   return extractedHookSchema.parse(parsed);
 }
 
-const WORKER_PREAMBLE = [
-  'You are an autonomous worker agent in the Junior framework.',
-  'Execute the task completely. Do not ask for confirmation, do not explain what you would do — just do it.',
-  'You have access to the `junior` CLI and MCP tools (mcp__junior__*) for managing schedules, hooks, and tasks.',
-  'If the task involves creating a schedule, hook, or task, use the MCP tools or run `junior schedule add`, `junior hook add`, or `junior task add` directly.',
-  '',
-  'Task:',
-].join('\n');
+export function buildWorkerPreamble(mcpAvailable: boolean): string {
+  const lines = [
+    'You are an autonomous worker agent in the Junior framework.',
+    'Execute the task completely. Do not ask for confirmation, do not explain what you would do — just do it.',
+  ];
 
-export function buildClaudeArgs(prompt: string): string[] {
-  const fullPrompt = `${WORKER_PREAMBLE}\n${prompt}`;
-  return ['-p', fullPrompt, '--output-format', 'stream-json', '--verbose', '--dangerously-skip-permissions'];
+  if (mcpAvailable) {
+    lines.push(
+      'You have access to the `junior` CLI and MCP tools (mcp__junior__*) for managing schedules, hooks, and tasks.',
+      'If the task involves creating a schedule, hook, or task, use the MCP tools or run `junior schedule add`, `junior hook add`, or `junior task add` directly.',
+    );
+  } else {
+    lines.push(
+      'Junior MCP tools are not available. Do not attempt to create schedules, hooks, or tasks.',
+      'Focus only on the code task described below.',
+    );
+  }
+
+  lines.push('', 'Task:');
+  return lines.join('\n');
+}
+
+export interface BuildClaudeArgsOptions {
+  prompt: string;
+  mcpConfigPath?: string;
+}
+
+export function buildClaudeArgs(opts: BuildClaudeArgsOptions): string[] {
+  const preamble = buildWorkerPreamble(opts.mcpConfigPath !== undefined);
+  const fullPrompt = `${preamble}\n${opts.prompt}`;
+  const args = ['-p', fullPrompt, '--output-format', 'stream-json', '--verbose', '--dangerously-skip-permissions'];
+  if (opts.mcpConfigPath) {
+    args.push('--mcp-config', opts.mcpConfigPath);
+  }
+  return args;
 }
 
 export interface FinalizePromptOptions {

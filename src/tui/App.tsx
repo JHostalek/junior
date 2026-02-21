@@ -9,6 +9,7 @@ import { errorMessage } from '@/core/errors.js';
 import { notifyChange } from '@/core/events.js';
 import { getCurrentBranch } from '@/core/git.js';
 import { info } from '@/core/logger.js';
+import { detectMcp } from '@/core/mcp.js';
 import { getRepoPath } from '@/core/paths.js';
 import { isDaemonRunning } from '@/daemon/pid.js';
 import { ensureInit, getDb, schema } from '@/db/index.js';
@@ -59,6 +60,7 @@ const FILTERS = [null, 'queued', 'running', 'failed', 'done'] as const;
 function App() {
   const { exit } = useApp();
   const { rows, columns } = useTerminalSize();
+  const [mcpAvailable] = useState(() => detectMcp(getRepoPath()).available);
   const [view, setView] = useState<View>('input');
   const [cursor, setCursor] = useState(0);
   const [filterIdx, setFilterIdx] = useState(0);
@@ -1107,7 +1109,7 @@ function App() {
 
   return (
     <Box flexDirection="column" width={columns} height={rows}>
-      {showSectionBar && <SectionBar activeView={view} width={columns} />}
+      {showSectionBar && <SectionBar activeView={view} width={columns} mcpAvailable={mcpAvailable} />}
       {view === 'exiting' ? (
         <Box height={contentHeight} flexDirection="column" alignItems="center" justifyContent="center">
           <ExitDialog onConfirm={handleExitChoice} onCancel={handleExitCancel} onRememberChange={setExitRemember} />
