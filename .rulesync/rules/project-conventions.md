@@ -72,6 +72,17 @@ src/
 - Config: `biome.json` — recommended rules, single quotes, semicolons, 2-space indent, 120 line width
 - Run `bun run lint:fix` to auto-fix; `bun run check` for typecheck + lint together
 
+## Developer Worktree Workflow
+
+Human-initiated feature work uses `/tmp/` worktrees (ephemeral, auto-cleaned on reboot):
+- `/worktree feature/foo` → creates `/tmp/{repo}-feature-foo` with branch `feature/foo`
+- Work + commit with `/git`
+- `/pr` → push + create PR
+- Switch back to main repo
+- `/worktree-clean /tmp/{repo}-feature-foo` → remove worktree + delete branch
+
+**Distinction**: `.junior/worktrees/` is for the daemon's automated job execution. `/tmp/` worktrees are for interactive developer sessions.
+
 ## Gotchas
 
 - The `.junior/` directory is per-repo (cwd-relative), not global — `drizzle.config.ts` also uses `cwd/.junior/junior.db`
