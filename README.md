@@ -11,14 +11,31 @@ background daemon that picks up tasks, spins up isolated git worktrees, lets Cla
 ## install
 
 ```bash
-git clone https://github.com/JHostalek/junior.git && cd junior
-bun install && bun run build
-ln -s "$(pwd)/dist/junior" /usr/local/bin/junior
-cp .mcp.json.example .mcp.json
-# edit .mcp.json to point to your junior-mcp binary path
+brew tap jhostalek/tap && brew install junior
 ```
 
-needs [Bun](https://bun.sh) and [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
+needs [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
+
+### MCP server (optional but recommended)
+
+junior spawns Claude Code headless to run your tasks. by default it can only edit files and run commands. the MCP server gives the worker agent `mcp__junior__*` tools — so a task like *"run tests every morning at 9am"* can actually create the schedule itself instead of just writing a note about it.
+
+what it unlocks: tasks, schedules, hooks, daemon control — all callable by the worker agent mid-execution.
+
+add to your project's `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "junior": {
+      "command": "npx",
+      "args": ["-y", "@jhostalek/junior-mcp"]
+    }
+  }
+}
+```
+
+without it: tasks still run fine, but the agent can't self-organize (create follow-up tasks, set up schedules, register hooks). with it: full loop — one prompt can bootstrap an entire automation pipeline.
 
 ## usage
 
