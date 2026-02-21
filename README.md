@@ -2,6 +2,10 @@
 
 queue prompts. schedule jobs. claude codes. you sleep.
 
+<p align="center">
+  <img src="demo/demo.gif" alt="Junior TUI demo" width="800" />
+</p>
+
 ## what it does
 
 background daemon that picks up tasks, spins up isolated git worktrees, lets Claude Code do the work, and merges results back.

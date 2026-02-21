@@ -78,3 +78,7 @@ docs/plans
 
 # Notes
 docs/notes
+
+# Demo scripts (local only, gif is tracked)
+demo/*.sh
+demo/*.tape
