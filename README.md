@@ -18,13 +18,13 @@ background daemon for [Claude Code](https://docs.anthropic.com/en/docs/claude-co
 
 **schedules** — recurring tasks on a cron.
 
-> *"run the full test suite every weekday at 9am. if anything fails, fix it."*
+> *"every weekday at 9am, review open Sentry issues and fix anything with a clear stack trace"*
 >
-> *"every monday morning, summarize last week's commits into a changelog draft"*
+> *"every monday morning, post a summary of last week's merged PRs to #engineering in Slack"*
 >
-> *"check for outdated dependencies every sunday and open PRs for safe upgrades"*
+> *"every sunday, check for outdated dependencies and open PRs for safe upgrades"*
 >
-> *"every night, regenerate API docs from source"*
+> *"every night, query Grafana for error rate spikes and create Linear tickets for new anomalies"*
 
 **hooks** — trigger tasks when conditions change.
 
