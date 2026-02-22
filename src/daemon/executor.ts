@@ -324,12 +324,14 @@ export async function executeJob(job: typeof schema.jobs.$inferSelect): Promise<
 
     await withFinalizeLock(job.repoPath, async () => {
       info('Spawning finalize agent', { jobId: job.id });
+      const config = loadConfig();
       const finalizePrompt = buildFinalizePrompt({
         repoPath: job.repoPath,
         worktreePath,
         branchName,
         baseBranch: job.baseBranch,
         jobTitle: job.title,
+        allowHookBypass: config.allow_hook_bypass,
       });
       const originalBranch = await getCurrentBranch(job.repoPath);
       const finalizeProcess = Bun.spawn([CLAUDE_COMMAND, ...buildFinalizeArgs(finalizePrompt)], {

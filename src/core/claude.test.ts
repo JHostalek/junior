@@ -56,6 +56,7 @@ describe('buildFinalizePrompt', () => {
     branchName: 'junior/fix-bug-42',
     baseBranch: 'main',
     jobTitle: 'fix login bug',
+    allowHookBypass: false,
   };
 
   test('includes all context parameters', () => {
@@ -91,8 +92,20 @@ describe('buildFinalizePrompt', () => {
   test('includes safety rules about not modifying source code', () => {
     const prompt = buildFinalizePrompt(opts);
     expect(prompt).toContain('Do NOT modify any source code');
+  });
+
+  test('when allowHookBypass is false, forbids --no-verify', () => {
+    const prompt = buildFinalizePrompt({ ...opts, allowHookBypass: false });
+    expect(prompt).toContain('NEVER use --no-verify');
+    expect(prompt).toContain('stop and report the error');
+    expect(prompt).not.toContain('last resort');
+  });
+
+  test('when allowHookBypass is true, allows --no-verify as last resort', () => {
+    const prompt = buildFinalizePrompt({ ...opts, allowHookBypass: true });
     expect(prompt).toContain('no --no-verify');
     expect(prompt).toContain('last resort');
+    expect(prompt).not.toContain('NEVER use --no-verify');
   });
 });
 
