@@ -199,7 +199,6 @@ export interface FinalizePromptOptions {
   branchName: string;
   baseBranch: string;
   jobTitle: string;
-  allowHookBypass: boolean;
 }
 
 export function buildFinalizePrompt(opts: FinalizePromptOptions): string {
@@ -253,17 +252,9 @@ export function buildFinalizePrompt(opts: FinalizePromptOptions): string {
     '',
     'IMPORTANT RULES:',
     '- Do NOT modify any source code files. Only git operations.',
-    ...(opts.allowHookBypass
-      ? [
-          '- Do NOT skip pre-commit hooks (no --no-verify) unless you have exhausted all other options.',
-          '- If a hook fails, read the error output carefully and adapt your approach.',
-          '- If after 3 attempts a commit/merge still fails on hooks, use --no-verify as last resort.',
-        ]
-      : [
-          '- NEVER use --no-verify. Pre-commit hooks must always run.',
-          '- If a hook fails, read the error output carefully and adapt your approach.',
-          '- If hooks still fail after multiple attempts, stop and report the error.',
-        ]),
+    '- NEVER use --no-verify. Pre-commit hooks must always run.',
+    '- If a hook fails, read the error output carefully and adapt your approach.',
+    '- If hooks still fail after multiple attempts, stop and report the error.',
     '- Always use -C <path> for git commands — never cd.',
   ].join('\n');
 }

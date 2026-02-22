@@ -77,7 +77,7 @@ describe('formatZodErrors', () => {
 });
 
 describe('configSchema', () => {
-  const validConfig = { max_concurrency: 4, max_retries: 3, on_exit: 'stop', allow_hook_bypass: false };
+  const validConfig = { max_concurrency: 4, max_retries: 3, on_exit: 'stop' };
 
   test('accepts valid config with all fields', () => {
     const result = configSchema.safeParse(validConfig);
@@ -86,7 +86,6 @@ describe('configSchema', () => {
       expect(result.data.max_concurrency).toBe(4);
       expect(result.data.max_retries).toBe(3);
       expect(result.data.on_exit).toBe('stop');
-      expect(result.data.allow_hook_bypass).toBe(false);
     }
   });
 
@@ -112,16 +111,6 @@ describe('configSchema', () => {
 
   test.each([-1, 11, 1.5, 'abc'])('rejects invalid max_retries value: %s', (value) => {
     const result = configSchema.safeParse({ ...validConfig, max_retries: value });
-    expect(result.success).toBe(false);
-  });
-
-  test.each([true, false])('accepts allow_hook_bypass %s', (value) => {
-    const result = configSchema.safeParse({ ...validConfig, allow_hook_bypass: value });
-    expect(result.success).toBe(true);
-  });
-
-  test.each(['yes', 1, null])('rejects non-boolean allow_hook_bypass: %s', (value) => {
-    const result = configSchema.safeParse({ ...validConfig, allow_hook_bypass: value });
     expect(result.success).toBe(false);
   });
 });
