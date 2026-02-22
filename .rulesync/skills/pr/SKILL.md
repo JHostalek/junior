@@ -35,13 +35,27 @@ Before anything else, detect the git hosting platform:
    - If uncommitted changes exist, commit them following `/git` conventions (conventional commit, specific file staging)
    - If working tree is clean, skip to push
 
-4. **Push branch**: `git push -u origin <branch-name>`
+4. **Check if branch is behind main**:
+   ```
+   git fetch origin main
+   git rev-list --count HEAD..origin/main
+   ```
+   - If count is 0: branch is up-to-date, skip to push
+   - If count > 0: main has moved ahead. Rebase to avoid merge conflicts in the PR:
+     ```
+     git rebase origin/main
+     ```
+     - If rebase has conflicts, stop and ask the user
+     - Successful rebase requires `--force-with-lease` in the push step
 
-5. **Gather PR context**:
+5. **Push branch**: `git push -u origin <branch-name>`
+   - If the branch was rebased in step 4, use `git push --force-with-lease -u origin <branch-name>`
+
+6. **Gather PR context**:
    - `git log main..HEAD --oneline` for commit history
    - `git diff main...HEAD --stat` for changed files summary
 
-6. **Create PR/MR** using the PR Body Template below (platform-specific):
+7. **Create PR/MR** using the PR Body Template below (platform-specific):
 
    **GitHub** (`gh`):
    ```
@@ -59,7 +73,7 @@ Before anything else, detect the git hosting platform:
      --source-branch <branch> --target-branch main
    ```
 
-7. **Report**: Output the PR/MR URL
+8. **Report**: Output the PR/MR URL
 
 ## PR Title
 

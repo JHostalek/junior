@@ -15,4 +15,5 @@ export const TITLE_MAX_LENGTH = 120;
 export const TASK_LIST_LIMIT = 200;
 export const MESSAGE_FLASH_DURATION_MS = 3_000;
 export const HOOK_POLL_INTERVAL_MS = 10_000;
+export const HOOK_EVAL_TIMEOUT_MS = 30_000;
 export const RETRY_BASE_DELAY_S = 60;

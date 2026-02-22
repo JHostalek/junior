@@ -1,4 +1,6 @@
+import { HOOK_EVAL_TIMEOUT_MS } from './constants.js';
 import { HookError } from './errors.js';
+import { warn } from './logger.js';
 import type { HookContext } from './types.js';
 
 export function createHookContext(repoPath: string, state: Record<string, unknown>): HookContext {
@@ -41,10 +43,17 @@ export function createHookContext(repoPath: string, state: Record<string, unknow
   };
 }
 
+const TIMEOUT = Symbol('hook_timeout');
+
 export async function evaluateHook(checkFn: string, ctx: HookContext): Promise<boolean> {
   try {
     const fn = new Function('ctx', `return (async () => { ${checkFn} })()`) as (ctx: HookContext) => Promise<unknown>;
-    const result = await fn(ctx);
+    const timeout = new Promise<typeof TIMEOUT>((resolve) => setTimeout(() => resolve(TIMEOUT), HOOK_EVAL_TIMEOUT_MS));
+    const result = await Promise.race([fn(ctx), timeout]);
+    if (result === TIMEOUT) {
+      warn('Hook evaluation timed out', { timeoutMs: HOOK_EVAL_TIMEOUT_MS });
+      return false;
+    }
     return Boolean(result);
   } catch {
     return false;
