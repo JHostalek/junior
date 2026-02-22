@@ -37,6 +37,7 @@ import { info, error as logError, warn } from '@/core/logger.js';
 import { detectMcp } from '@/core/mcp.js';
 import { getLogsDir, getWorktreesDir } from '@/core/paths.js';
 import { getDb, getSqlite, schema } from '@/db/index.js';
+import { withFinalizeLock } from './finalize-lock.js';
 
 function getLogFilePath(jobId: number, runId: number): string {
   return path.join(getLogsDir(), `job-${jobId}-run-${runId}.log`);
@@ -312,65 +313,70 @@ export async function executeJob(job: typeof schema.jobs.$inferSelect): Promise<
 
     await removeSymlinks(worktreePath);
 
-    info('Spawning finalize agent', { jobId: job.id });
-    const finalizePrompt = buildFinalizePrompt({
-      repoPath: job.repoPath,
-      worktreePath,
-      branchName,
-      baseBranch: job.baseBranch,
-      jobTitle: job.title,
-    });
-    const originalBranch = await getCurrentBranch(job.repoPath);
-    const finalizeProcess = Bun.spawn([CLAUDE_COMMAND, ...buildFinalizeArgs(finalizePrompt)], {
-      cwd: job.repoPath,
-      stdin: 'ignore',
-      stdout: 'pipe',
-      stderr: 'pipe',
-      env: childEnv,
-    });
-    try {
-      const finalizeResult = await waitForClaude(finalizeProcess, logFile, job.id, run.id);
-      if (finalizeResult.exitCode !== 0) {
-        logError('Finalize agent exited with non-zero code', {
-          jobId: job.id,
-          exitCode: finalizeResult.exitCode,
-        });
-        throw new ClaudeError(`Finalize agent exited with code ${finalizeResult.exitCode}`);
-      }
+    await withFinalizeLock(job.repoPath, async () => {
+      info('Spawning finalize agent', { jobId: job.id });
+      const finalizePrompt = buildFinalizePrompt({
+        repoPath: job.repoPath,
+        worktreePath,
+        branchName,
+        baseBranch: job.baseBranch,
+        jobTitle: job.title,
+      });
+      const originalBranch = await getCurrentBranch(job.repoPath);
+      const finalizeProcess = Bun.spawn([CLAUDE_COMMAND, ...buildFinalizeArgs(finalizePrompt)], {
+        cwd: job.repoPath,
+        stdin: 'ignore',
+        stdout: 'pipe',
+        stderr: 'pipe',
+        env: childEnv,
+      });
+      try {
+        const finalizeResult = await waitForClaude(finalizeProcess, logFile, job.id, run.id);
+        if (finalizeResult.exitCode !== 0) {
+          logError('Finalize agent exited with non-zero code', {
+            jobId: job.id,
+            exitCode: finalizeResult.exitCode,
+          });
+          throw new ClaudeError(`Finalize agent exited with code ${finalizeResult.exitCode}`);
+        }
 
-      const hadChanges = await hasCommitsAhead(worktreePath, job.baseBranch);
-      if (hadChanges) {
-        const merged = await isBranchMerged(job.repoPath, branchName, job.baseBranch);
-        if (!merged) {
-          throw new ClaudeError('Finalize agent completed but merge was not performed');
+        const hadChanges = await hasCommitsAhead(worktreePath, job.baseBranch);
+        if (hadChanges) {
+          const merged = await isBranchMerged(job.repoPath, branchName, job.baseBranch);
+          if (!merged) {
+            throw new ClaudeError('Finalize agent completed but merge was not performed');
+          }
+        } else {
+          info('No changes to merge, marking job as done', { jobId: job.id });
         }
-      } else {
-        info('No changes to merge, marking job as done', { jobId: job.id });
-      }
-    } catch (finalizeErr) {
-      warn('Finalize failed, restoring repo state', { jobId: job.id, error: errorMessage(finalizeErr) });
-      try {
-        if (await isMergeInProgress(job.repoPath)) {
-          await abortMerge(job.repoPath);
+      } catch (finalizeErr) {
+        warn('Finalize failed, restoring repo state', { jobId: job.id, error: errorMessage(finalizeErr) });
+        try {
+          if (await isMergeInProgress(job.repoPath)) {
+            await abortMerge(job.repoPath);
+          }
+        } catch (abortErr) {
+          warn('Failed to abort merge during recovery', { jobId: job.id, error: errorMessage(abortErr) });
         }
-      } catch (abortErr) {
-        warn('Failed to abort merge during recovery', { jobId: job.id, error: errorMessage(abortErr) });
-      }
-      try {
-        const current = await getCurrentBranch(job.repoPath);
-        if (current !== originalBranch) {
-          await checkout(job.repoPath, originalBranch);
+        try {
+          const current = await getCurrentBranch(job.repoPath);
+          if (current !== originalBranch) {
+            await checkout(job.repoPath, originalBranch);
+          }
+        } catch (checkoutErr) {
+          warn('Failed to restore original branch during recovery', {
+            jobId: job.id,
+            error: errorMessage(checkoutErr),
+          });
         }
-      } catch (checkoutErr) {
-        warn('Failed to restore original branch during recovery', { jobId: job.id, error: errorMessage(checkoutErr) });
+        try {
+          await tryPopJuniorStash(job.repoPath);
+        } catch (stashErr) {
+          warn('Failed to pop stash during recovery', { jobId: job.id, error: errorMessage(stashErr) });
+        }
+        throw finalizeErr;
       }
-      try {
-        await tryPopJuniorStash(job.repoPath);
-      } catch (stashErr) {
-        warn('Failed to pop stash during recovery', { jobId: job.id, error: errorMessage(stashErr) });
-      }
-      throw finalizeErr;
-    }
+    });
 
     await removeWorktree(job.repoPath, worktreePath);
     await forceDeleteBranch(job.repoPath, branchName);
