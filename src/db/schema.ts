@@ -18,6 +18,7 @@ export const jobs = sqliteTable('jobs', {
   hookId: integer('hook_id').references(() => hooks.id, { onDelete: 'set null' }),
   runAt: integer('run_at'),
   sessionId: text('session_id'),
+  review: integer('review').notNull().default(0),
   cancelRequestedAt: integer('cancel_requested_at'),
   ...timestamps,
 });

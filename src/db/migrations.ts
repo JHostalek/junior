@@ -115,6 +115,10 @@ const migrations: Migration[] = [
       ALTER TABLE jobs ADD COLUMN hook_id INTEGER REFERENCES hooks(id) ON DELETE SET NULL;
     `,
   },
+  {
+    tag: '0007_review_column',
+    sql: `ALTER TABLE jobs ADD COLUMN review INTEGER NOT NULL DEFAULT 0;`,
+  },
 ];
 
 export default migrations;

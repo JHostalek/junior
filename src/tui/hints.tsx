@@ -16,7 +16,7 @@ type View =
   | 'editHook'
   | 'exiting';
 
-const FILTER_LABELS = ['all', 'queued', 'running', 'failed', 'done'];
+const FILTER_LABELS = ['all', 'queued', 'running', 'failed', 'done', 'review'];
 
 export function buildHints(
   view: View,
@@ -329,6 +329,8 @@ export function buildHints(
       <Text>:cancel </Text>
       <Text dimColor>r</Text>
       <Text>:retry </Text>
+      <Text dimColor>m</Text>
+      <Text>:merge </Text>
       <Text dimColor>l</Text>
       <Text>:logs </Text>
       <Text dimColor>f</Text>

@@ -199,11 +199,16 @@ export interface FinalizePromptOptions {
   branchName: string;
   baseBranch: string;
   jobTitle: string;
+  commitOnly?: boolean;
 }
 
 export function buildFinalizePrompt(opts: FinalizePromptOptions): string {
-  return [
-    'You are a git finalize agent. Your ONLY job is to commit and merge code changes.',
+  const preamble = opts.commitOnly
+    ? 'You are a git finalize agent. Your ONLY job is to commit code changes.'
+    : 'You are a git finalize agent. Your ONLY job is to commit and merge code changes.';
+
+  const lines = [
+    preamble,
     'You must NOT modify any source code. Only run git commands.',
     '',
     'Context:',
@@ -229,26 +234,34 @@ export function buildFinalizePrompt(opts: FinalizePromptOptions): string {
     `If there are no changes, check if there are already commits ahead of ${opts.baseBranch}:`,
     `  git -C ${opts.worktreePath} log ${opts.baseBranch}..HEAD --oneline`,
     `If no changes AND no commits ahead, there is nothing to merge — report this and stop.`,
-    '',
-    `STEP 2 — MERGE BASE BRANCH INTO WORKTREE (catch up)`,
-    'Merge the base branch into the worktree to catch up with any changes:',
-    `  git -C ${opts.worktreePath} merge ${opts.baseBranch} --no-edit`,
-    'If there are merge conflicts:',
-    `1. git -C ${opts.worktreePath} diff --name-only --diff-filter=U  (find conflicted files)`,
-    '2. Read each conflicted file and resolve the conflicts intelligently',
-    `3. git -C ${opts.worktreePath} add <resolved files>`,
-    `4. git -C ${opts.worktreePath} commit --no-edit`,
-    '',
-    'STEP 3 — MERGE INTO BASE BRANCH',
-    '1. Check for uncommitted changes in the main repo:',
-    `   git -C ${opts.repoPath} status --porcelain`,
-    `   If dirty: git -C ${opts.repoPath} stash push -m "junior-autostash"`,
-    `2. git -C ${opts.repoPath} checkout ${opts.baseBranch}`,
-    `3. git -C ${opts.repoPath} merge --no-ff ${opts.branchName} -m "<message>"`,
-    "   - Use a merge commit message following the repo's conventions",
-    '   - If hooks reject the message, read the error and fix it',
-    `4. If you stashed in step 1: git -C ${opts.repoPath} stash pop`,
-    `5. Verify: git -C ${opts.repoPath} log --oneline -1`,
+  ];
+
+  if (!opts.commitOnly) {
+    lines.push(
+      '',
+      `STEP 2 — MERGE BASE BRANCH INTO WORKTREE (catch up)`,
+      'Merge the base branch into the worktree to catch up with any changes:',
+      `  git -C ${opts.worktreePath} merge ${opts.baseBranch} --no-edit`,
+      'If there are merge conflicts:',
+      `1. git -C ${opts.worktreePath} diff --name-only --diff-filter=U  (find conflicted files)`,
+      '2. Read each conflicted file and resolve the conflicts intelligently',
+      `3. git -C ${opts.worktreePath} add <resolved files>`,
+      `4. git -C ${opts.worktreePath} commit --no-edit`,
+      '',
+      'STEP 3 — MERGE INTO BASE BRANCH',
+      '1. Check for uncommitted changes in the main repo:',
+      `   git -C ${opts.repoPath} status --porcelain`,
+      `   If dirty: git -C ${opts.repoPath} stash push -m "junior-autostash"`,
+      `2. git -C ${opts.repoPath} checkout ${opts.baseBranch}`,
+      `3. git -C ${opts.repoPath} merge --no-ff ${opts.branchName} -m "<message>"`,
+      "   - Use a merge commit message following the repo's conventions",
+      '   - If hooks reject the message, read the error and fix it',
+      `4. If you stashed in step 1: git -C ${opts.repoPath} stash pop`,
+      `5. Verify: git -C ${opts.repoPath} log --oneline -1`,
+    );
+  }
+
+  lines.push(
     '',
     'IMPORTANT RULES:',
     '- Do NOT modify any source code files. Only git operations.',
@@ -256,7 +269,9 @@ export function buildFinalizePrompt(opts: FinalizePromptOptions): string {
     '- If a hook fails, read the error output carefully and adapt your approach.',
     '- If hooks still fail after multiple attempts, stop and report the error.',
     '- Always use -C <path> for git commands — never cd.',
-  ].join('\n');
+  );
+
+  return lines.join('\n');
 }
 
 export function buildFinalizeArgs(prompt: string): string[] {

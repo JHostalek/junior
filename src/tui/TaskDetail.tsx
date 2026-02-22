@@ -351,6 +351,7 @@ function statusColor(status: string): string | undefined {
     done: 'green',
     failed: 'red',
     cancelled: 'gray',
+    review: 'magenta',
   };
   return map[status];
 }

@@ -1,4 +1,4 @@
-export type JobStatus = 'queued' | 'running' | 'done' | 'failed' | 'cancelled';
+export type JobStatus = 'queued' | 'running' | 'done' | 'failed' | 'cancelled' | 'review';
 
 export type RunStatus = 'running' | 'succeeded' | 'failed' | 'timeout' | 'cancelled';
 
@@ -10,6 +10,7 @@ export interface Config {
   max_concurrency: number;
   max_retries: number;
   on_exit: OnExitBehavior;
+  review_mode: boolean;
 }
 
 export interface ClaudeUsage {
