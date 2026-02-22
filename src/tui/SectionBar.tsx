@@ -15,10 +15,10 @@ type View =
   | 'exiting';
 
 const SECTIONS = [
-  { key: '1', id: 'input', label: 'input' },
-  { key: '2', id: 'list', label: 'tasks' },
-  { key: '3', id: 'schedules', label: 'schedules' },
-  { key: '4', id: 'hooks', label: 'hooks' },
+  { id: 'input', label: 'input' },
+  { id: 'list', label: 'tasks' },
+  { id: 'schedules', label: 'schedules' },
+  { id: 'hooks', label: 'hooks' },
 ] as const;
 
 const MCP_SECTIONS = new Set<string>(['schedules', 'hooks']);
@@ -37,7 +37,7 @@ export function SectionBar({ activeView, width, mcpAvailable = true }: Props) {
         const suffix = !mcpAvailable && MCP_SECTIONS.has(section.id) ? '*' : '';
         return (
           <Text key={section.id} bold={active} dimColor={!active}>
-            {section.key}:{section.label}
+            {section.label}
             {suffix}
             {i < SECTIONS.length - 1 ? '  ' : ''}
           </Text>
