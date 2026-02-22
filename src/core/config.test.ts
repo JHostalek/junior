@@ -77,8 +77,10 @@ describe('formatZodErrors', () => {
 });
 
 describe('configSchema', () => {
+  const validConfig = { max_concurrency: 4, max_retries: 3, on_exit: 'stop' };
+
   test('accepts valid config with all fields', () => {
-    const result = configSchema.safeParse({ max_concurrency: 4, max_retries: 3, on_exit: 'stop' });
+    const result = configSchema.safeParse(validConfig);
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.max_concurrency).toBe(4);
@@ -88,27 +90,27 @@ describe('configSchema', () => {
   });
 
   test('accepts max_concurrency of 1', () => {
-    const result = configSchema.safeParse({ max_concurrency: 1, max_retries: 0, on_exit: 'ask' });
+    const result = configSchema.safeParse({ ...validConfig, max_concurrency: 1 });
     expect(result.success).toBe(true);
   });
 
   test('accepts max_concurrency of 16', () => {
-    const result = configSchema.safeParse({ max_concurrency: 16, max_retries: 0, on_exit: 'keep' });
+    const result = configSchema.safeParse({ ...validConfig, max_concurrency: 16 });
     expect(result.success).toBe(true);
   });
 
   test('rejects invalid on_exit value', () => {
-    const result = configSchema.safeParse({ max_concurrency: 2, max_retries: 0, on_exit: 'invalid' });
+    const result = configSchema.safeParse({ ...validConfig, on_exit: 'invalid' });
     expect(result.success).toBe(false);
   });
 
   test.each([0, 5, 10])('accepts max_retries of %i', (value) => {
-    const result = configSchema.safeParse({ max_concurrency: 2, max_retries: value, on_exit: 'ask' });
+    const result = configSchema.safeParse({ ...validConfig, max_retries: value });
     expect(result.success).toBe(true);
   });
 
   test.each([-1, 11, 1.5, 'abc'])('rejects invalid max_retries value: %s', (value) => {
-    const result = configSchema.safeParse({ max_concurrency: 2, max_retries: value, on_exit: 'ask' });
+    const result = configSchema.safeParse({ ...validConfig, max_retries: value });
     expect(result.success).toBe(false);
   });
 });

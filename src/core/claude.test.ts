@@ -91,8 +91,13 @@ describe('buildFinalizePrompt', () => {
   test('includes safety rules about not modifying source code', () => {
     const prompt = buildFinalizePrompt(opts);
     expect(prompt).toContain('Do NOT modify any source code');
-    expect(prompt).toContain('no --no-verify');
-    expect(prompt).toContain('last resort');
+  });
+
+  test('forbids --no-verify unconditionally', () => {
+    const prompt = buildFinalizePrompt(opts);
+    expect(prompt).toContain('NEVER use --no-verify');
+    expect(prompt).toContain('stop and report the error');
+    expect(prompt).not.toContain('last resort');
   });
 });
 
