@@ -77,8 +77,9 @@ async function waitForClaude(
   logFile: string,
   jobId: number,
   runId?: number,
-): Promise<{ exitCode: number; stdout: string; usage: UsageAccumulator }> {
+): Promise<{ exitCode: number; stdout: string; stderr: string; usage: UsageAccumulator }> {
   let stdout = '';
+  let stderr = '';
   let lastActivityTime = Date.now();
   let logHandle: {
     write(chunk: Uint8Array): void;
@@ -145,10 +146,13 @@ async function waitForClaude(
     }
   }
 
+  const stderrDecoder = new TextDecoder('utf-8', { fatal: false });
+
   async function drainStderr(stream: ReadableStream<Uint8Array> | null) {
     if (!stream) return;
     try {
       for await (const chunk of stream) {
+        stderr += stderrDecoder.decode(chunk, { stream: true });
         try {
           logHandle.write(chunk);
         } catch (err) {
@@ -156,6 +160,7 @@ async function waitForClaude(
         }
         lastActivityTime = Date.now();
       }
+      stderr += stderrDecoder.decode();
     } catch (err) {
       warn('Error draining stderr', { jobId, error: errorMessage(err) });
     }
@@ -232,7 +237,14 @@ async function waitForClaude(
     throw new CancelledError('Cancelled by user');
   }
 
-  return { exitCode, stdout, usage: acc };
+  return { exitCode, stdout, stderr, usage: acc };
+}
+
+function stderrTail(raw: string, maxLen = 500): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  const tail = trimmed.length > maxLen ? `…${trimmed.slice(-maxLen)}` : trimmed;
+  return `\n${tail}`;
 }
 
 export async function executeJob(job: typeof schema.jobs.$inferSelect): Promise<void> {
@@ -300,7 +312,9 @@ export async function executeJob(job: typeof schema.jobs.$inferSelect): Promise<
 
     if (workerResult.exitCode !== 0) {
       logError('Worker Claude exited with non-zero code', { jobId: job.id, exitCode: workerResult.exitCode });
-      throw new ClaudeError(`Worker Claude exited with code ${workerResult.exitCode}`);
+      throw new ClaudeError(
+        `Worker Claude exited with code ${workerResult.exitCode}${stderrTail(workerResult.stderr)}`,
+      );
     }
 
     const claudeResult = parseClaudeOutput(workerResult.stdout);
@@ -349,7 +363,9 @@ export async function executeJob(job: typeof schema.jobs.$inferSelect): Promise<
             jobId: job.id,
             exitCode: finalizeResult.exitCode,
           });
-          throw new ClaudeError(`Finalize agent exited with code ${finalizeResult.exitCode}`);
+          throw new ClaudeError(
+            `Finalize agent exited with code ${finalizeResult.exitCode}${stderrTail(finalizeResult.stderr)}`,
+          );
         }
 
         if (isReview) {
