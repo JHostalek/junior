@@ -12,11 +12,13 @@ export function formatZodErrors(error: ZodError): string {
 
 export const configSchema = z.object({
   max_concurrency: z.number().int().min(1).max(16),
+  max_retries: z.number().int().min(0).max(10),
   on_exit: z.enum(['ask', 'stop', 'keep']),
 });
 
 export const DEFAULT_CONFIG: Config = {
   max_concurrency: 2,
+  max_retries: 0,
   on_exit: 'ask',
 };
 

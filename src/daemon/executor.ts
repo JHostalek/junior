@@ -8,10 +8,12 @@ import {
   CLAUDE_COMMAND,
   parseClaudeOutput,
 } from '@/core/claude.js';
+import { loadConfig } from '@/core/config.js';
 import {
   ACTIVITY_TIMEOUT_MS,
   CANCEL_CHECK_INTERVAL_MS,
   KILL_ESCALATION_MS,
+  RETRY_BASE_DELAY_S,
   USAGE_THROTTLE_MS,
   WATCHDOG_INTERVAL_MS,
 } from '@/core/constants.js';
@@ -238,13 +240,20 @@ export async function executeJob(job: typeof schema.jobs.$inferSelect): Promise<
   const branchName = job.scheduleId ? generateScheduledBranchName(job.title) : generateBranchName(job.title, job.id);
   const worktreePath = path.join(getWorktreesDir(), `job-${job.id}`);
 
+  const maxAttemptRow = db
+    .select({ max: sql<number | null>`max(${schema.runs.attempt})` })
+    .from(schema.runs)
+    .where(eq(schema.runs.jobId, job.id))
+    .get();
+  const attempt = (maxAttemptRow?.max ?? 0) + 1;
+
   const run = getSqlite().transaction(() => {
     db.update(schema.jobs)
       .set({ status: 'running', branch: branchName, updatedAt: sql`(unixepoch())` })
       .where(eq(schema.jobs.id, job.id))
       .run();
 
-    const r = db.insert(schema.runs).values({ jobId: job.id, attempt: 1, status: 'running' }).returning().get();
+    const r = db.insert(schema.runs).values({ jobId: job.id, attempt, status: 'running' }).returning().get();
 
     const logFile = getLogFilePath(job.id, r.id);
     db.update(schema.runs).set({ logFile, updatedAt: sql`(unixepoch())` }).where(eq(schema.runs.id, r.id)).run();
@@ -412,7 +421,10 @@ export async function executeJob(job: typeof schema.jobs.$inferSelect): Promise<
       notifyChange();
     } else {
       const errMsg = errorMessage(err);
-      logError('Job execution failed', { jobId: job.id, error: errMsg });
+      logError('Job execution failed', { jobId: job.id, error: errMsg, attempt });
+
+      const config = loadConfig();
+      const shouldRetry = config.max_retries > 0 && attempt < config.max_retries + 1;
 
       getSqlite().transaction(() => {
         db.update(schema.runs)
@@ -425,10 +437,20 @@ export async function executeJob(job: typeof schema.jobs.$inferSelect): Promise<
           .where(eq(schema.runs.id, run.id))
           .run();
 
-        db.update(schema.jobs)
-          .set({ status: 'failed', updatedAt: sql`(unixepoch())` })
-          .where(eq(schema.jobs.id, job.id))
-          .run();
+        if (shouldRetry) {
+          const delaySec = RETRY_BASE_DELAY_S * 2 ** (attempt - 1);
+          const runAt = Math.floor(Date.now() / 1000) + delaySec;
+          info('Scheduling auto-retry', { jobId: job.id, attempt, nextAttempt: attempt + 1, delaySec });
+          db.update(schema.jobs)
+            .set({ status: 'queued', runAt, updatedAt: sql`(unixepoch())` })
+            .where(eq(schema.jobs.id, job.id))
+            .run();
+        } else {
+          db.update(schema.jobs)
+            .set({ status: 'failed', updatedAt: sql`(unixepoch())` })
+            .where(eq(schema.jobs.id, job.id))
+            .run();
+        }
       })();
       notifyChange();
     }
