@@ -8,6 +8,7 @@ export type OnExitBehavior = 'ask' | 'stop' | 'keep';
 
 export interface Config {
   max_concurrency: number;
+  max_retries: number;
   on_exit: OnExitBehavior;
 }
 
