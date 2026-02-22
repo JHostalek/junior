@@ -2,10 +2,20 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Command } from 'commander';
 import { desc, eq, sql } from 'drizzle-orm';
+import { loadConfig } from '@/core/config.js';
 import { LOG_WATCH_INTERVAL_MS, TITLE_MAX_LENGTH } from '@/core/constants.js';
 import { errorMessage, JuniorError } from '@/core/errors.js';
 import { notifyChange } from '@/core/events.js';
-import { forceDeleteBranch, getCurrentBranch, pruneWorktrees, removeWorktree } from '@/core/git.js';
+import {
+  checkout,
+  forceDeleteBranch,
+  getCurrentBranch,
+  mergeNoFf,
+  pruneWorktrees,
+  removeWorktree,
+  stash,
+  tryPopJuniorStash,
+} from '@/core/git.js';
 import { warn } from '@/core/logger.js';
 import { getRepoPath, getWorktreesDir } from '@/core/paths.js';
 import type { JobStatus } from '@/core/types.js';
@@ -18,13 +28,16 @@ taskCommand
   .command('add')
   .description('Add a new task')
   .argument('<description>', 'What to do (plain text, like a GitHub issue)')
+  .option('--review', 'Enable review mode (skip auto-merge)')
   .action(
-    cliAction(async (description: string) => {
+    cliAction(async (description: string, opts: { review?: boolean }) => {
       ensureInit();
       const db = getDb();
       const repoPath = getRepoPath();
       const title = description.split('\n')[0].slice(0, TITLE_MAX_LENGTH);
       const baseBranch = await getCurrentBranch(repoPath);
+      const config = loadConfig();
+      const review = (opts.review ?? config.review_mode) ? 1 : 0;
 
       const result = db
         .insert(schema.jobs)
@@ -33,11 +46,12 @@ taskCommand
           prompt: description,
           repoPath,
           baseBranch,
+          review,
         })
         .returning()
         .get();
 
-      console.log(`Task #${result.id} queued: ${result.title}`);
+      console.log(`Task #${result.id} queued${review ? ' (review)' : ''}: ${result.title}`);
     }),
   );
 
@@ -146,9 +160,9 @@ taskCommand
       const job = getJobOrExit(id);
       const db = getDb();
 
-      const retryable: JobStatus[] = ['failed', 'cancelled', 'done'];
+      const retryable: JobStatus[] = ['failed', 'cancelled', 'done', 'review'];
       if (!retryable.includes(job.status as JobStatus)) {
-        console.error(`Task #${id} is ${job.status}, can only retry failed, cancelled, or done tasks.`);
+        console.error(`Task #${id} is ${job.status}, can only retry failed, cancelled, done, or review tasks.`);
         process.exit(1);
       }
 
@@ -156,6 +170,85 @@ taskCommand
       notifyChange();
 
       console.log(`Task #${id} re-queued.`);
+    }),
+  );
+
+export async function mergeJob(jobId: number): Promise<void> {
+  const db = getDb();
+  const job = db.select().from(schema.jobs).where(eq(schema.jobs.id, jobId)).get();
+  if (!job) throw new JuniorError(`Task #${jobId} not found`);
+  if (job.status !== 'review') throw new JuniorError(`Task #${jobId} is ${job.status}, can only merge review tasks`);
+  if (!job.branch) throw new JuniorError(`Task #${jobId} has no branch`);
+
+  const worktreePath = path.join(getWorktreesDir(), `job-${jobId}`);
+  if (!fs.existsSync(worktreePath)) {
+    throw new JuniorError(`Worktree not found: ${worktreePath}`);
+  }
+
+  const originalBranch = await getCurrentBranch(job.repoPath);
+  const didStash = await stash(job.repoPath);
+
+  try {
+    await checkout(job.repoPath, job.baseBranch);
+    await mergeNoFf(job.repoPath, job.branch, `Merge branch '${job.branch}'`);
+  } catch (err) {
+    try {
+      const current = await getCurrentBranch(job.repoPath);
+      if (current !== originalBranch) {
+        await checkout(job.repoPath, originalBranch);
+      }
+    } catch {}
+    if (didStash) {
+      try {
+        await tryPopJuniorStash(job.repoPath);
+      } catch {}
+    }
+    throw err;
+  }
+
+  if (didStash) {
+    try {
+      await tryPopJuniorStash(job.repoPath);
+    } catch (err) {
+      warn('Failed to pop stash after merge', { jobId, error: errorMessage(err) });
+    }
+  }
+
+  try {
+    await removeWorktree(job.repoPath, worktreePath);
+  } catch {
+    try {
+      fs.rmSync(worktreePath, { recursive: true, force: true });
+    } catch (cleanupError) {
+      warn('Failed to remove worktree during merge', { jobId, error: errorMessage(cleanupError) });
+    }
+  }
+
+  try {
+    await forceDeleteBranch(job.repoPath, job.branch);
+  } catch {}
+
+  try {
+    await pruneWorktrees(job.repoPath);
+  } catch {}
+
+  db.update(schema.jobs).set({ status: 'done', updatedAt: sql`(unixepoch())` }).where(eq(schema.jobs.id, jobId)).run();
+  notifyChange();
+}
+
+taskCommand
+  .command('merge')
+  .description('Merge a review task into its base branch')
+  .argument('<id>', 'Task ID')
+  .action(
+    cliAction(async (id: string) => {
+      const job = getJobOrExit(id);
+      if (job.status !== 'review') {
+        console.error(`Task #${id} is ${job.status}, can only merge review tasks.`);
+        process.exit(1);
+      }
+      await mergeJob(job.id);
+      console.log(`Task #${id} merged.`);
     }),
   );
 

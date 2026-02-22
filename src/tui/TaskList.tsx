@@ -8,6 +8,7 @@ const STATUS_COLORS: Record<string, (s: string) => string> = {
   done: chalk.green,
   failed: chalk.red,
   cancelled: chalk.gray,
+  review: chalk.magenta,
 };
 
 export function TaskList({
@@ -98,6 +99,7 @@ const STATUS_COLORS_INK: Record<string, string> = {
   done: 'green',
   failed: 'red',
   cancelled: 'gray',
+  review: 'magenta',
 };
 
 function pad(s: string, width: number): string {

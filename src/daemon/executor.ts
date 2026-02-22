@@ -322,14 +322,17 @@ export async function executeJob(job: typeof schema.jobs.$inferSelect): Promise<
 
     await removeSymlinks(worktreePath);
 
+    const isReview = Boolean(job.review);
+
     await withFinalizeLock(job.repoPath, async () => {
-      info('Spawning finalize agent', { jobId: job.id });
+      info('Spawning finalize agent', { jobId: job.id, commitOnly: isReview });
       const finalizePrompt = buildFinalizePrompt({
         repoPath: job.repoPath,
         worktreePath,
         branchName,
         baseBranch: job.baseBranch,
         jobTitle: job.title,
+        commitOnly: isReview,
       });
       const originalBranch = await getCurrentBranch(job.repoPath);
       const finalizeProcess = Bun.spawn([CLAUDE_COMMAND, ...buildFinalizeArgs(finalizePrompt)], {
@@ -349,14 +352,21 @@ export async function executeJob(job: typeof schema.jobs.$inferSelect): Promise<
           throw new ClaudeError(`Finalize agent exited with code ${finalizeResult.exitCode}`);
         }
 
-        const hadChanges = await hasCommitsAhead(worktreePath, job.baseBranch);
-        if (hadChanges) {
-          const merged = await isBranchMerged(job.repoPath, branchName, job.baseBranch);
-          if (!merged) {
-            throw new ClaudeError('Finalize agent completed but merge was not performed');
+        if (isReview) {
+          const hadChanges = await hasCommitsAhead(worktreePath, job.baseBranch);
+          if (!hadChanges) {
+            info('No changes to review, marking job as done', { jobId: job.id });
           }
         } else {
-          info('No changes to merge, marking job as done', { jobId: job.id });
+          const hadChanges = await hasCommitsAhead(worktreePath, job.baseBranch);
+          if (hadChanges) {
+            const merged = await isBranchMerged(job.repoPath, branchName, job.baseBranch);
+            if (!merged) {
+              throw new ClaudeError('Finalize agent completed but merge was not performed');
+            }
+          } else {
+            info('No changes to merge, marking job as done', { jobId: job.id });
+          }
         }
       } catch (finalizeErr) {
         warn('Finalize failed, restoring repo state', { jobId: job.id, error: errorMessage(finalizeErr) });
@@ -387,18 +397,31 @@ export async function executeJob(job: typeof schema.jobs.$inferSelect): Promise<
       }
     });
 
-    await removeWorktree(job.repoPath, worktreePath);
-    await forceDeleteBranch(job.repoPath, branchName);
+    if (isReview) {
+      db.update(schema.jobs)
+        .set({
+          status: 'review',
+          sessionId: claudeResult.session_id,
+          updatedAt: sql`(unixepoch())`,
+        })
+        .where(eq(schema.jobs.id, job.id))
+        .run();
+      notifyChange();
+      info('Job ready for review', { jobId: job.id, branch: branchName, worktree: worktreePath });
+    } else {
+      await removeWorktree(job.repoPath, worktreePath);
+      await forceDeleteBranch(job.repoPath, branchName);
 
-    db.update(schema.jobs)
-      .set({
-        status: 'done',
-        sessionId: claudeResult.session_id,
-        updatedAt: sql`(unixepoch())`,
-      })
-      .where(eq(schema.jobs.id, job.id))
-      .run();
-    notifyChange();
+      db.update(schema.jobs)
+        .set({
+          status: 'done',
+          sessionId: claudeResult.session_id,
+          updatedAt: sql`(unixepoch())`,
+        })
+        .where(eq(schema.jobs.id, job.id))
+        .run();
+      notifyChange();
+    }
   } catch (err) {
     if (err instanceof CancelledError) {
       info('Job cancelled by user', { jobId: job.id });
@@ -455,24 +478,31 @@ export async function executeJob(job: typeof schema.jobs.$inferSelect): Promise<
       notifyChange();
     }
   } finally {
-    try {
-      if (fs.existsSync(worktreePath)) {
-        await removeWorktree(job.repoPath, worktreePath);
+    const currentJob = db
+      .select({ status: schema.jobs.status })
+      .from(schema.jobs)
+      .where(eq(schema.jobs.id, job.id))
+      .get();
+    if (currentJob?.status !== 'review') {
+      try {
+        if (fs.existsSync(worktreePath)) {
+          await removeWorktree(job.repoPath, worktreePath);
+        }
+      } catch (err) {
+        warn('Failed to remove worktree', {
+          jobId: job.id,
+          error: errorMessage(err),
+        });
       }
-    } catch (err) {
-      warn('Failed to remove worktree', {
-        jobId: job.id,
-        error: errorMessage(err),
-      });
-    }
-    try {
-      await forceDeleteBranch(job.repoPath, branchName);
-    } catch (err) {
-      warn('Failed to delete branch during cleanup', {
-        jobId: job.id,
-        branch: branchName,
-        error: errorMessage(err),
-      });
+      try {
+        await forceDeleteBranch(job.repoPath, branchName);
+      } catch (err) {
+        warn('Failed to delete branch during cleanup', {
+          jobId: job.id,
+          branch: branchName,
+          error: errorMessage(err),
+        });
+      }
     }
   }
 }

@@ -1,7 +1,7 @@
 import { eq, inArray, sql } from 'drizzle-orm';
 import { Box, render, Text, useApp, useInput } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { deleteJob } from '@/cli/task.js';
+import { deleteJob, mergeJob } from '@/cli/task.js';
 import { extractHook, extractSchedule } from '@/core/claude.js';
 import { loadConfig, setConfigValue } from '@/core/config.js';
 import { DOUBLE_DELETE_TIMEOUT_MS, MESSAGE_FLASH_DURATION_MS, TITLE_MAX_LENGTH } from '@/core/constants.js';
@@ -55,7 +55,7 @@ function isTopLevel(v: View): v is TopLevelSection {
   return (TOP_LEVEL_SECTIONS as readonly string[]).includes(v);
 }
 
-const FILTERS = [null, 'queued', 'running', 'failed', 'done'] as const;
+const FILTERS = [null, 'queued', 'running', 'failed', 'done', 'review'] as const;
 
 function App() {
   const { exit } = useApp();
@@ -848,6 +848,22 @@ function App() {
           .run();
         notifyChange();
         flash(`#${selectedJob.id} re-queued`);
+        return;
+      }
+      if (input === 'm') {
+        if (!selectedJob) return;
+        if (selectedJob.status !== 'review') {
+          flash('can only merge review tasks');
+          return;
+        }
+        mergeJob(selectedJob.id)
+          .then(() => {
+            flash(`#${selectedJob.id} merged`);
+            notifyChange();
+          })
+          .catch((err) => {
+            flash(`merge failed: ${errorMessage(err)}`);
+          });
         return;
       }
       if (input === 'l') {
