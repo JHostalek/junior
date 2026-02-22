@@ -221,7 +221,7 @@ function App() {
 
     if (isTopLevel(view)) {
       if (view === 'input' && inputMode === 'insert' && inputValueRef.current.length > 0) {
-        // fall through — don't intercept tab/number keys while typing
+        // fall through — don't intercept tab key while typing
       } else {
         if (key.tab) {
           const idx = TOP_LEVEL_SECTIONS.indexOf(view);
@@ -231,13 +231,6 @@ function App() {
           navigateToSection(next);
           return;
         }
-        const numMap: Record<string, TopLevelSection> = { '1': 'input', '2': 'list', '3': 'schedules', '4': 'hooks' };
-        const target = numMap[input];
-        if (target && target !== view) {
-          navigateToSection(target);
-          return;
-        }
-        if (target && target === view) return;
       }
     }
 
