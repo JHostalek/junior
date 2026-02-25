@@ -5,18 +5,26 @@ import type { HookEvalResult } from './types.js';
 
 const workerUrl = new URL('./hook-worker.ts', import.meta.url).href;
 
-export async function evaluateHook(
-  checkFn: string,
-  repoPath: string,
-  state: Record<string, unknown>,
-): Promise<HookEvalResult> {
+export interface EvaluateHookOptions {
+  checkFn: string;
+  repoPath: string;
+  state: Record<string, unknown>;
+  allowedCommands: string[] | undefined;
+}
+
+export async function evaluateHook(opts: EvaluateHookOptions): Promise<HookEvalResult> {
   const worker = new Worker(workerUrl, { smol: true });
   try {
-    const request: WorkerRequest = { checkFn, repoPath, state };
+    const request: WorkerRequest = {
+      checkFn: opts.checkFn,
+      repoPath: opts.repoPath,
+      state: opts.state,
+      allowedCommands: opts.allowedCommands,
+    };
     const result = await new Promise<HookEvalResult>((resolve) => {
       const timer = setTimeout(() => {
         warn('Hook evaluation timed out', { timeoutMs: HOOK_EVAL_TIMEOUT_MS });
-        resolve({ triggered: false, state, error: `Timed out after ${HOOK_EVAL_TIMEOUT_MS}ms` });
+        resolve({ triggered: false, state: opts.state, error: `Timed out after ${HOOK_EVAL_TIMEOUT_MS}ms` });
       }, HOOK_EVAL_TIMEOUT_MS);
 
       worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
@@ -31,7 +39,7 @@ export async function evaluateHook(
 
       worker.onerror = (event) => {
         clearTimeout(timer);
-        resolve({ triggered: false, state, error: String(event.message ?? event) });
+        resolve({ triggered: false, state: opts.state, error: String(event.message ?? event) });
       };
 
       worker.postMessage(request);

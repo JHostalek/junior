@@ -17,6 +17,7 @@ export const configSchema = z.object({
   on_exit: z.enum(['ask', 'stop', 'keep']),
   review_mode: z.boolean().default(false),
   permission_mode: z.enum(PERMISSION_MODES).default('full'),
+  hook_allowed_commands: z.array(z.string().min(1)).optional(),
 });
 
 export const DEFAULT_CONFIG: Config = {

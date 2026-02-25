@@ -27,6 +27,7 @@ export interface WorkerRequest {
   checkFn: string;
   repoPath: string;
   state: Record<string, unknown>;
+  allowedCommands: string[] | undefined;
 }
 
 export interface WorkerResponse {
@@ -36,15 +37,19 @@ export interface WorkerResponse {
   error?: string;
 }
 
-function buildRestrictedContext(
+function buildHookContext(
   repoPath: string,
   state: Record<string, unknown>,
+  allowedCommands: string[] | undefined,
 ): {
   git: (...args: string[]) => Promise<string>;
   readFile: (path: string) => Promise<string>;
+  exec: (cmd: string, args: string[]) => Promise<string>;
   state: Record<string, unknown>;
   repoPath: string;
 } {
+  const allowlist = allowedCommands ? new Set(allowedCommands) : undefined;
+
   return {
     repoPath,
     state,
@@ -74,17 +79,35 @@ function buildRestrictedContext(
       }
       return Bun.file(resolved).text();
     },
+    async exec(cmd: string, args: string[]): Promise<string> {
+      if (allowlist && !allowlist.has(cmd)) {
+        throw new HookError(`command not allowed: ${cmd}. Allowed: ${[...allowlist].join(', ')}`);
+      }
+      const proc = Bun.spawn([cmd, ...args], {
+        cwd: repoPath,
+        stdin: 'ignore',
+        stdout: 'pipe',
+        stderr: 'pipe',
+      });
+      const output = await new Response(proc.stdout).text();
+      const code = await proc.exited;
+      if (code !== 0) {
+        const stderr = await new Response(proc.stderr).text();
+        throw new HookError(`${cmd} ${args.join(' ')} failed (exit ${code}): ${stderr.trim()}`);
+      }
+      return output.trim();
+    },
   };
 }
 
 declare var self: Worker;
 
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
-  const { checkFn, repoPath, state } = event.data;
+  const { checkFn, repoPath, state, allowedCommands } = event.data;
   try {
-    const ctx = buildRestrictedContext(repoPath, state);
+    const ctx = buildHookContext(repoPath, state, allowedCommands);
     const fn = new Function('ctx', `return (async () => { ${checkFn} })()`) as (
-      ctx: ReturnType<typeof buildRestrictedContext>,
+      ctx: ReturnType<typeof buildHookContext>,
     ) => Promise<unknown>;
     const result = await fn(ctx);
     const response: WorkerResponse = { ok: true, triggered: Boolean(result), state: ctx.state };

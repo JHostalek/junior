@@ -1,4 +1,5 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
+import { loadConfig } from '@/core/config.js';
 import { HOOK_POLL_INTERVAL_MS } from '@/core/constants.js';
 import { errorMessage } from '@/core/errors.js';
 import { notifyChange } from '@/core/events.js';
@@ -29,8 +30,14 @@ async function checkHook(hookId: number): Promise<void> {
     if (hasActiveJob) return;
 
     const repoPath = getRepoPath();
+    const config = loadConfig();
     const state: Record<string, unknown> = JSON.parse(hook.stateJson || '{}');
-    const result = await evaluateHook(hook.checkFn, repoPath, state);
+    const result = await evaluateHook({
+      checkFn: hook.checkFn,
+      repoPath,
+      state,
+      allowedCommands: config.hook_allowed_commands,
+    });
 
     if (result.error) {
       warn('Hook evaluation error', { hookId, name: hook.name, error: result.error });
