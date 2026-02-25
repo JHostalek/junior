@@ -54,31 +54,47 @@ describe('generateScheduledBranchName', () => {
 });
 
 describe('validateBranchName', () => {
-  test('valid name passes', () => {
-    expect(() => validateBranchName('feature/my-branch')).not.toThrow();
+  test('valid name passes', async () => {
+    await expect(validateBranchName('feature/my-branch')).resolves.toBeUndefined();
   });
 
-  test('empty string throws GitError', () => {
-    expect(() => validateBranchName('')).toThrow(GitError);
+  test('name with dot passes', async () => {
+    await expect(validateBranchName('feat.fix')).resolves.toBeUndefined();
   });
 
-  test('starts with hyphen throws GitError', () => {
-    expect(() => validateBranchName('-bad-name')).toThrow(GitError);
+  test('name with slash passes', async () => {
+    await expect(validateBranchName('release/1.0')).resolves.toBeUndefined();
   });
 
-  test('contains space throws GitError', () => {
-    expect(() => validateBranchName('bad name')).toThrow(GitError);
+  test('empty string throws GitError', async () => {
+    await expect(validateBranchName('')).rejects.toThrow(GitError);
   });
 
-  test('contains double dots throws GitError', () => {
-    expect(() => validateBranchName('bad..name')).toThrow(GitError);
+  test('starts with hyphen throws GitError', async () => {
+    await expect(validateBranchName('-bad-name')).rejects.toThrow(GitError);
   });
 
-  test('contains tilde throws GitError', () => {
-    expect(() => validateBranchName('bad~name')).toThrow(GitError);
+  test('contains space throws GitError', async () => {
+    await expect(validateBranchName('bad name')).rejects.toThrow(GitError);
   });
 
-  test('contains null byte throws GitError', () => {
-    expect(() => validateBranchName('bad\x00name')).toThrow(GitError);
+  test('contains double dots throws GitError', async () => {
+    await expect(validateBranchName('bad..name')).rejects.toThrow(GitError);
+  });
+
+  test('contains tilde throws GitError', async () => {
+    await expect(validateBranchName('bad~name')).rejects.toThrow(GitError);
+  });
+
+  test('.lock suffix throws GitError', async () => {
+    await expect(validateBranchName('branch.lock')).rejects.toThrow(GitError);
+  });
+
+  test('@{ sequence throws GitError', async () => {
+    await expect(validateBranchName('branch@{0}')).rejects.toThrow(GitError);
+  });
+
+  test('leading dot in component throws GitError', async () => {
+    await expect(validateBranchName('.hidden')).rejects.toThrow(GitError);
   });
 });

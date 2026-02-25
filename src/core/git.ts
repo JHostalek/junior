@@ -3,8 +3,13 @@ import path from 'node:path';
 import { GitError } from './errors.js';
 import { warn } from './logger.js';
 
-export function validateBranchName(name: string): void {
-  if (name === '' || name.startsWith('-') || /[..\s~^:\\]|\x00/.test(name)) {
+export async function validateBranchName(name: string): Promise<void> {
+  if (name === '') throw new GitError('Invalid branch name: empty string');
+  const proc = Bun.spawn(['git', 'check-ref-format', '--branch', name], {
+    stdout: 'ignore',
+    stderr: 'ignore',
+  });
+  if ((await proc.exited) !== 0) {
     throw new GitError(`Invalid branch name "${name}"`);
   }
 }
@@ -53,8 +58,8 @@ export async function createWorktree(
   branchName: string,
   baseBranch: string,
 ): Promise<void> {
-  validateBranchName(branchName);
-  validateBranchName(baseBranch);
+  await validateBranchName(branchName);
+  await validateBranchName(baseBranch);
   try {
     await exec('git', ['-C', repoPath, 'branch', '-D', branchName]);
   } catch {}
@@ -67,7 +72,7 @@ export async function removeWorktree(repoPath: string, worktreePath: string): Pr
 }
 
 export async function forceDeleteBranch(repoPath: string, branchName: string): Promise<void> {
-  validateBranchName(branchName);
+  await validateBranchName(branchName);
   await exec('git', ['-C', repoPath, 'branch', '-D', branchName]);
 }
 
@@ -128,7 +133,7 @@ export async function removeSymlinks(worktreePath: string): Promise<void> {
 }
 
 export async function hasCommitsAhead(worktreePath: string, baseBranch: string): Promise<boolean> {
-  validateBranchName(baseBranch);
+  await validateBranchName(baseBranch);
   const { stdout } = await exec('git', ['-C', worktreePath, 'log', `${baseBranch}..HEAD`, '--oneline']);
   return stdout.trim().length > 0;
 }
@@ -141,7 +146,7 @@ export async function stageAndCommit(worktreePath: string, message: string): Pro
 }
 
 export async function mergeBase(worktreePath: string, baseBranch: string): Promise<boolean> {
-  validateBranchName(baseBranch);
+  await validateBranchName(baseBranch);
   try {
     await exec('git', ['-C', worktreePath, 'merge', baseBranch, '--no-edit']);
     return true;
@@ -162,17 +167,17 @@ export async function stashPop(repoPath: string): Promise<void> {
 }
 
 export async function mergeNoFf(repoPath: string, branchName: string, message: string): Promise<void> {
-  validateBranchName(branchName);
+  await validateBranchName(branchName);
   await exec('git', ['-C', repoPath, 'merge', '--no-ff', branchName, '-m', message]);
 }
 
 export async function checkout(repoPath: string, branch: string): Promise<void> {
-  validateBranchName(branch);
+  await validateBranchName(branch);
   await exec('git', ['-C', repoPath, 'checkout', branch]);
 }
 
 export async function getCurrentBranch(repoPath: string): Promise<string> {
-  const { stdout } = await exec('git', ['-C', repoPath, 'rev-parse', '--abbrev-ref', 'HEAD']);
+  const { stdout } = await exec('git', ['-C', repoPath, 'symbolic-ref', '--short', 'HEAD']);
   return stdout.trim();
 }
 
@@ -187,8 +192,8 @@ export async function abortMerge(repoPath: string): Promise<void> {
 }
 
 export async function isBranchMerged(repoPath: string, branch: string, into: string): Promise<boolean> {
-  validateBranchName(branch);
-  validateBranchName(into);
+  await validateBranchName(branch);
+  await validateBranchName(into);
   const { stdout } = await exec('git', ['-C', repoPath, 'branch', '--merged', into]);
   return stdout.split('\n').some((line) => line.trim() === branch);
 }
