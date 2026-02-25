@@ -123,6 +123,10 @@ const migrations: Migration[] = [
     tag: '0008_permission_mode',
     sql: `ALTER TABLE jobs ADD COLUMN permission_mode TEXT NOT NULL DEFAULT 'full';`,
   },
+  {
+    tag: '0009_hooks_last_error',
+    sql: `ALTER TABLE hooks ADD COLUMN last_error TEXT;`,
+  },
 ];
 
 export default migrations;

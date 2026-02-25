@@ -15,6 +15,7 @@ export interface Config {
   on_exit: OnExitBehavior;
   review_mode: boolean;
   permission_mode: PermissionMode;
+  hook_allowed_commands?: string[];
 }
 
 export interface ClaudeUsage {
@@ -29,10 +30,8 @@ export interface ClaudeResult {
   usage: ClaudeUsage;
 }
 
-export interface HookContext {
-  git(...args: string[]): Promise<string>;
-  readFile(path: string): Promise<string>;
-  exec(cmd: string, args: string[]): Promise<string>;
+export interface HookEvalResult {
+  triggered: boolean;
   state: Record<string, unknown>;
-  repoPath: string;
+  error: string | undefined;
 }
