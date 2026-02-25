@@ -38,11 +38,17 @@ export interface WorkerResponse {
   error?: string;
 }
 
+const MAX_OUTPUT_BYTES = 1_000_000;
+
+function truncate(s: string): string {
+  return s.length > MAX_OUTPUT_BYTES ? s.slice(0, MAX_OUTPUT_BYTES) : s;
+}
+
 async function runProcess(cmd: string[], cwd: string): Promise<{ output: string; stderr: string; code: number }> {
   const proc = Bun.spawn(cmd, { cwd, stdin: 'ignore', stdout: 'pipe', stderr: 'pipe' });
   const [output, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
   const code = await proc.exited;
-  return { output: output.trim(), stderr: stderr.trim(), code };
+  return { output: truncate(output).trim(), stderr: truncate(stderr).trim(), code };
 }
 
 function buildHookContext(
