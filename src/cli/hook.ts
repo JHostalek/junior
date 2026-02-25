@@ -76,6 +76,15 @@ hookCommand
           { header: 'STATUS', width: 8, value: (row) => String(row.status) },
           { header: 'LAST CHECKED', width: 22, value: (row) => String(row.lastChecked) },
           { header: 'LAST TRIGGERED', width: 22, value: (row) => String(row.lastTriggered) },
+          {
+            header: 'LAST ERROR',
+            width: 30,
+            value: (row) => {
+              const err = row.lastError as string | null;
+              if (!err) return '';
+              return err.length > 28 ? `${err.slice(0, 28)}..` : err;
+            },
+          },
         ],
         rowData as unknown as Record<string, unknown>[],
       );
@@ -102,6 +111,9 @@ hookCommand
       console.log(
         `  Last triggered: ${hook.lastTriggeredAt ? new Date(hook.lastTriggeredAt * 1000).toLocaleString() : 'never'}`,
       );
+      if (hook.lastError) {
+        console.log(`  Last error:     ${hook.lastError}`);
+      }
       console.log(`  Created:        ${new Date(hook.createdAt * 1000).toLocaleString()}`);
     }),
   );

@@ -32,7 +32,12 @@ export interface ClaudeResult {
 export interface HookContext {
   git(...args: string[]): Promise<string>;
   readFile(path: string): Promise<string>;
-  exec(cmd: string, args: string[]): Promise<string>;
   state: Record<string, unknown>;
   repoPath: string;
+}
+
+export interface HookEvalResult {
+  triggered: boolean;
+  state: Record<string, unknown>;
+  error: string | undefined;
 }

@@ -65,6 +65,7 @@ export const hooks = sqliteTable('hooks', {
   paused: integer('paused').notNull().default(0),
   lastCheckedAt: integer('last_checked_at'),
   lastTriggeredAt: integer('last_triggered_at'),
+  lastError: text('last_error'),
   createdAt: timestamps.createdAt,
 });
 

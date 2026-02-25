@@ -3,8 +3,8 @@ import { HOOK_POLL_INTERVAL_MS } from '@/core/constants.js';
 import { errorMessage } from '@/core/errors.js';
 import { notifyChange } from '@/core/events.js';
 import { getDefaultBranch } from '@/core/git.js';
-import { createHookContext, evaluateHook } from '@/core/hooks.js';
-import { info, error as logError } from '@/core/logger.js';
+import { evaluateHook } from '@/core/hooks.js';
+import { info, error as logError, warn } from '@/core/logger.js';
 import { getRepoPath } from '@/core/paths.js';
 import { getDb, schema } from '@/db/index.js';
 
@@ -30,12 +30,19 @@ async function checkHook(hookId: number): Promise<void> {
 
     const repoPath = getRepoPath();
     const state: Record<string, unknown> = JSON.parse(hook.stateJson || '{}');
-    const ctx = createHookContext(repoPath, state);
-    const triggered = await evaluateHook(hook.checkFn, ctx);
+    const result = await evaluateHook(hook.checkFn, repoPath, state);
 
-    db.update(schema.hooks).set({ lastCheckedAt: sql`(unixepoch())` }).where(eq(schema.hooks.id, hookId)).run();
+    if (result.error) {
+      warn('Hook evaluation error', { hookId, name: hook.name, error: result.error });
+    }
 
-    if (triggered) {
+    const updates: Record<string, unknown> = {
+      lastCheckedAt: sql`(unixepoch())`,
+      stateJson: JSON.stringify(result.state),
+      lastError: result.error ?? null,
+    };
+
+    if (result.triggered) {
       const baseBranch = await getDefaultBranch(repoPath);
 
       db.insert(schema.jobs)
@@ -48,21 +55,14 @@ async function checkHook(hookId: number): Promise<void> {
         })
         .run();
 
-      db.update(schema.hooks)
-        .set({
-          lastTriggeredAt: sql`(unixepoch())`,
-          stateJson: JSON.stringify(ctx.state),
-        })
-        .where(eq(schema.hooks.id, hookId))
-        .run();
-
+      updates.lastTriggeredAt = sql`(unixepoch())`;
       info('Hook triggered', { hookId, name: hook.name });
+    }
+
+    db.update(schema.hooks).set(updates).where(eq(schema.hooks.id, hookId)).run();
+
+    if (result.triggered) {
       notifyChange();
-    } else {
-      db.update(schema.hooks)
-        .set({ stateJson: JSON.stringify(ctx.state) })
-        .where(eq(schema.hooks.id, hookId))
-        .run();
     }
   } catch (err) {
     logError('Hook check failed', { hookId, error: errorMessage(err) });

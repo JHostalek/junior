@@ -1,61 +1,43 @@
 import { HOOK_EVAL_TIMEOUT_MS } from './constants.js';
-import { HookError } from './errors.js';
+import type { WorkerRequest, WorkerResponse } from './hook-worker.js';
 import { warn } from './logger.js';
-import type { HookContext } from './types.js';
+import type { HookEvalResult } from './types.js';
 
-export function createHookContext(repoPath: string, state: Record<string, unknown>): HookContext {
-  return {
-    repoPath,
-    state,
-    async git(...args: string[]): Promise<string> {
-      const proc = Bun.spawn(['git', ...args], {
-        cwd: repoPath,
-        stdin: 'ignore',
-        stdout: 'pipe',
-        stderr: 'pipe',
-      });
-      const output = await new Response(proc.stdout).text();
-      const code = await proc.exited;
-      if (code !== 0) {
-        const stderr = await new Response(proc.stderr).text();
-        throw new HookError(`git ${args.join(' ')} failed (exit ${code}): ${stderr.trim()}`);
-      }
-      return output.trim();
-    },
-    async readFile(path: string): Promise<string> {
-      return Bun.file(path).text();
-    },
-    async exec(cmd: string, args: string[]): Promise<string> {
-      const proc = Bun.spawn([cmd, ...args], {
-        cwd: repoPath,
-        stdin: 'ignore',
-        stdout: 'pipe',
-        stderr: 'pipe',
-      });
-      const output = await new Response(proc.stdout).text();
-      const code = await proc.exited;
-      if (code !== 0) {
-        const stderr = await new Response(proc.stderr).text();
-        throw new HookError(`${cmd} ${args.join(' ')} failed (exit ${code}): ${stderr.trim()}`);
-      }
-      return output.trim();
-    },
-  };
-}
+const workerUrl = new URL('./hook-worker.ts', import.meta.url).href;
 
-const TIMEOUT = Symbol('hook_timeout');
-
-export async function evaluateHook(checkFn: string, ctx: HookContext): Promise<boolean> {
+export async function evaluateHook(
+  checkFn: string,
+  repoPath: string,
+  state: Record<string, unknown>,
+): Promise<HookEvalResult> {
+  const worker = new Worker(workerUrl, { smol: true });
   try {
-    const fn = new Function('ctx', `return (async () => { ${checkFn} })()`) as (ctx: HookContext) => Promise<unknown>;
-    const timeout = new Promise<typeof TIMEOUT>((resolve) => setTimeout(() => resolve(TIMEOUT), HOOK_EVAL_TIMEOUT_MS));
-    const result = await Promise.race([fn(ctx), timeout]);
-    if (result === TIMEOUT) {
-      warn('Hook evaluation timed out', { timeoutMs: HOOK_EVAL_TIMEOUT_MS });
-      return false;
-    }
-    return Boolean(result);
-  } catch {
-    return false;
+    const request: WorkerRequest = { checkFn, repoPath, state };
+    const result = await new Promise<HookEvalResult>((resolve) => {
+      const timer = setTimeout(() => {
+        warn('Hook evaluation timed out', { timeoutMs: HOOK_EVAL_TIMEOUT_MS });
+        resolve({ triggered: false, state, error: `Timed out after ${HOOK_EVAL_TIMEOUT_MS}ms` });
+      }, HOOK_EVAL_TIMEOUT_MS);
+
+      worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+        clearTimeout(timer);
+        const response = event.data;
+        if (response.ok) {
+          resolve({ triggered: response.triggered, state: response.state, error: undefined });
+        } else {
+          resolve({ triggered: false, state: response.state, error: response.error });
+        }
+      };
+
+      worker.onerror = (event) => {
+        clearTimeout(timer);
+        resolve({ triggered: false, state, error: String(event.message ?? event) });
+      };
+
+      worker.postMessage(request);
+    });
+    return result;
+  } finally {
+    worker.terminate();
   }
 }
