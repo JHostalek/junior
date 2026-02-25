@@ -39,6 +39,7 @@ import { info, error as logError, warn } from '@/core/logger.js';
 import { detectMcp } from '@/core/mcp.js';
 import { getLogsDir, getWorktreesDir } from '@/core/paths.js';
 import type { PermissionMode } from '@/core/types.js';
+import { PERMISSION_MODES } from '@/core/types.js';
 import { getDb, getSqlite, schema } from '@/db/index.js';
 import { withFinalizeLock } from './finalize-lock.js';
 
@@ -294,7 +295,9 @@ export async function executeJob(job: typeof schema.jobs.$inferSelect): Promise<
         ...buildClaudeArgs({
           prompt: job.prompt,
           mcpConfigPath: mcp.configPath,
-          permissionMode: job.permissionMode as PermissionMode,
+          permissionMode: (PERMISSION_MODES as readonly string[]).includes(job.permissionMode)
+            ? (job.permissionMode as PermissionMode)
+            : 'full',
         }),
       ],
       {

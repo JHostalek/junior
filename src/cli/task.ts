@@ -19,12 +19,11 @@ import {
 import { warn } from '@/core/logger.js';
 import { getRepoPath, getWorktreesDir } from '@/core/paths.js';
 import type { JobStatus } from '@/core/types.js';
+import { PERMISSION_MODES } from '@/core/types.js';
 import { ensureInit, getDb, schema } from '@/db/index.js';
 import { cliAction, getJobOrExit, printTable } from './helpers.js';
 
 export const taskCommand = new Command('task').description('Manage tasks');
-
-const VALID_PERMISSION_MODES = ['full', 'standard', 'safe'] as const;
 
 taskCommand
   .command('add')
@@ -42,10 +41,8 @@ taskCommand
       const config = loadConfig();
       const review = (opts.review ?? config.review_mode) ? 1 : 0;
       const permissionMode = opts.permissions ?? config.permission_mode;
-      if (!(VALID_PERMISSION_MODES as readonly string[]).includes(permissionMode)) {
-        console.error(
-          `Invalid permission mode "${permissionMode}". Must be one of: ${VALID_PERMISSION_MODES.join(', ')}`,
-        );
+      if (!(PERMISSION_MODES as readonly string[]).includes(permissionMode)) {
+        console.error(`Invalid permission mode "${permissionMode}". Must be one of: ${PERMISSION_MODES.join(', ')}`);
         process.exit(1);
       }
 

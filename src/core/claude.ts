@@ -184,9 +184,9 @@ export interface BuildClaudeArgsOptions {
   permissionMode?: PermissionMode;
 }
 
-const ALLOWED_TOOLS: Record<Exclude<PermissionMode, 'full'>, string> = {
-  standard: 'Read,Edit,Write,Bash,Glob,Grep,Task',
-  safe: 'Read,Edit,Write,Glob,Grep',
+const ALLOWED_TOOLS: Record<Exclude<PermissionMode, 'full'>, readonly string[]> = {
+  standard: ['Read', 'Edit', 'Write', 'Bash', 'Glob', 'Grep', 'Task'],
+  safe: ['Read', 'Edit', 'Write', 'Glob', 'Grep'],
 };
 
 export function buildClaudeArgs(opts: BuildClaudeArgsOptions): string[] {
@@ -197,7 +197,7 @@ export function buildClaudeArgs(opts: BuildClaudeArgsOptions): string[] {
   if (mode === 'full') {
     args.push('--dangerously-skip-permissions');
   } else {
-    args.push('--allowedTools', ALLOWED_TOOLS[mode]);
+    args.push('--allowedTools', ALLOWED_TOOLS[mode].join(','));
   }
   if (opts.mcpConfigPath) {
     args.push('--mcp-config', opts.mcpConfigPath);

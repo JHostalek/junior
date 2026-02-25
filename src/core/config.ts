@@ -5,6 +5,7 @@ import { type ZodError, z } from 'zod';
 import { ConfigError } from './errors.js';
 import { getConfigPath } from './paths.js';
 import type { Config } from './types.js';
+import { PERMISSION_MODES } from './types.js';
 
 export function formatZodErrors(error: ZodError): string {
   return error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ');
@@ -15,7 +16,7 @@ export const configSchema = z.object({
   max_retries: z.number().int().min(0).max(10),
   on_exit: z.enum(['ask', 'stop', 'keep']),
   review_mode: z.boolean().default(false),
-  permission_mode: z.enum(['full', 'standard', 'safe']).default('full'),
+  permission_mode: z.enum(PERMISSION_MODES).default('full'),
 });
 
 export const DEFAULT_CONFIG: Config = {

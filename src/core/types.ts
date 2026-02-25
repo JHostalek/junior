@@ -6,7 +6,8 @@ export type { TaskFile } from './task-file.js';
 
 export type OnExitBehavior = 'ask' | 'stop' | 'keep';
 
-export type PermissionMode = 'full' | 'standard' | 'safe';
+export const PERMISSION_MODES = ['full', 'standard', 'safe'] as const;
+export type PermissionMode = (typeof PERMISSION_MODES)[number];
 
 export interface Config {
   max_concurrency: number;
