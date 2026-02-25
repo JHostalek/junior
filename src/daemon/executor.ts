@@ -38,6 +38,8 @@ import {
 import { info, error as logError, warn } from '@/core/logger.js';
 import { detectMcp } from '@/core/mcp.js';
 import { getLogsDir, getWorktreesDir } from '@/core/paths.js';
+import type { PermissionMode } from '@/core/types.js';
+import { PERMISSION_MODES } from '@/core/types.js';
 import { getDb, getSqlite, schema } from '@/db/index.js';
 import { withFinalizeLock } from './finalize-lock.js';
 
@@ -288,7 +290,16 @@ export async function executeJob(job: typeof schema.jobs.$inferSelect): Promise<
     const mcp = detectMcp(job.repoPath);
     info('Spawning Worker Claude', { jobId: job.id, mcpAvailable: mcp.available });
     const workerProcess = Bun.spawn(
-      [CLAUDE_COMMAND, ...buildClaudeArgs({ prompt: job.prompt, mcpConfigPath: mcp.configPath })],
+      [
+        CLAUDE_COMMAND,
+        ...buildClaudeArgs({
+          prompt: job.prompt,
+          mcpConfigPath: mcp.configPath,
+          permissionMode: (PERMISSION_MODES as readonly string[]).includes(job.permissionMode)
+            ? (job.permissionMode as PermissionMode)
+            : 'full',
+        }),
+      ],
       {
         cwd: worktreePath,
         stdin: 'ignore',

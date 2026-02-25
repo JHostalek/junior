@@ -113,6 +113,27 @@ describe('configSchema', () => {
     const result = configSchema.safeParse({ ...validConfig, max_retries: value });
     expect(result.success).toBe(false);
   });
+
+  test.each(['full', 'standard', 'safe'] as const)('accepts permission_mode "%s"', (mode) => {
+    const result = configSchema.safeParse({ ...validConfig, permission_mode: mode });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.permission_mode).toBe(mode);
+    }
+  });
+
+  test('rejects invalid permission_mode value', () => {
+    const result = configSchema.safeParse({ ...validConfig, permission_mode: 'yolo' });
+    expect(result.success).toBe(false);
+  });
+
+  test('defaults permission_mode to full when omitted', () => {
+    const result = configSchema.safeParse(validConfig);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.permission_mode).toBe('full');
+    }
+  });
 });
 
 describe('DEFAULT_CONFIG', () => {

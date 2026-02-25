@@ -914,9 +914,10 @@ function App() {
       ensureInit();
       const db = getDb();
       const title = desc.split('\n')[0].slice(0, TITLE_MAX_LENGTH);
+      const config = loadConfig();
       const result = db
         .insert(schema.jobs)
-        .values({ title, prompt: desc, repoPath: getRepoPath(), baseBranch })
+        .values({ title, prompt: desc, repoPath: getRepoPath(), baseBranch, permissionMode: config.permission_mode })
         .returning()
         .get();
       setInputValue('');

@@ -2,7 +2,7 @@ import { Cron } from 'croner';
 import { z } from 'zod';
 import { ClaudeError } from './errors.js';
 import { Flag } from './flags.js';
-import type { ClaudeResult } from './types.js';
+import type { ClaudeResult, PermissionMode } from './types.js';
 
 export const CLAUDE_COMMAND = Flag.claudePath;
 
@@ -181,12 +181,24 @@ export function buildWorkerPreamble(mcpAvailable: boolean): string {
 export interface BuildClaudeArgsOptions {
   prompt: string;
   mcpConfigPath?: string;
+  permissionMode?: PermissionMode;
 }
+
+const ALLOWED_TOOLS: Record<Exclude<PermissionMode, 'full'>, readonly string[]> = {
+  standard: ['Read', 'Edit', 'Write', 'Bash', 'Glob', 'Grep', 'Task'],
+  safe: ['Read', 'Edit', 'Write', 'Glob', 'Grep'],
+};
 
 export function buildClaudeArgs(opts: BuildClaudeArgsOptions): string[] {
   const preamble = buildWorkerPreamble(opts.mcpConfigPath !== undefined);
   const fullPrompt = `${preamble}\n${opts.prompt}`;
-  const args = ['-p', fullPrompt, '--output-format', 'stream-json', '--verbose', '--dangerously-skip-permissions'];
+  const args = ['-p', fullPrompt, '--output-format', 'stream-json', '--verbose'];
+  const mode = opts.permissionMode ?? 'full';
+  if (mode === 'full') {
+    args.push('--dangerously-skip-permissions');
+  } else {
+    args.push('--allowedTools', ALLOWED_TOOLS[mode].join(','));
+  }
   if (opts.mcpConfigPath) {
     args.push('--mcp-config', opts.mcpConfigPath);
   }
