@@ -1,5 +1,8 @@
-import { describe, expect, mock, test } from 'bun:test';
-import { evaluateHook } from './hooks.js';
+import { afterAll, beforeAll, describe, expect, mock, test } from 'bun:test';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { evaluateHook, shutdownHookWorker } from './hooks.js';
 
 mock.module('./logger.js', () => ({
   warn: () => {},
@@ -18,6 +21,10 @@ const repoPath = import.meta.dir;
 function evalHook(checkFn: string, state: Record<string, unknown> = {}, allowedCommands?: string[]) {
   return evaluateHook({ checkFn, repoPath, state, allowedCommands });
 }
+
+afterAll(() => {
+  shutdownHookWorker();
+});
 
 describe('evaluateHook', () => {
   test('returns triggered=true when check function returns truthy', async () => {
@@ -66,7 +73,7 @@ describe('evaluateHook', () => {
   test('blocks readFile path traversal', async () => {
     const result = await evalHook('await ctx.readFile("../../etc/passwd"); return true;');
     expect(result.triggered).toBe(false);
-    expect(result.error).toContain('outside repo');
+    expect(result.error).toContain('readFile');
   });
 
   test('captures syntax errors', async () => {
@@ -94,5 +101,34 @@ describe('evaluateHook', () => {
     expect(result.triggered).toBe(false);
     expect(result.error).toContain('not allowed');
     expect(result.error).toContain('curl');
+  });
+
+  describe('symlink traversal', () => {
+    let tmpDir: string;
+    let symlinkPath: string;
+
+    beforeAll(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hook-symlink-test-'));
+      const secretFile = path.join(tmpDir, 'secret.txt');
+      fs.writeFileSync(secretFile, 'secret-data');
+      symlinkPath = path.join(repoPath, '.test-symlink-outside');
+      try {
+        fs.unlinkSync(symlinkPath);
+      } catch {}
+      fs.symlinkSync(secretFile, symlinkPath);
+    });
+
+    afterAll(() => {
+      try {
+        fs.unlinkSync(symlinkPath);
+      } catch {}
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('blocks readFile via symlink pointing outside repo', async () => {
+      const result = await evalHook('await ctx.readFile(".test-symlink-outside"); return true;');
+      expect(result.triggered).toBe(false);
+      expect(result.error).toContain('outside repo');
+    });
   });
 });

@@ -4,13 +4,22 @@ import { HOOK_POLL_INTERVAL_MS } from '@/core/constants.js';
 import { errorMessage } from '@/core/errors.js';
 import { notifyChange } from '@/core/events.js';
 import { getDefaultBranch } from '@/core/git.js';
-import { evaluateHook } from '@/core/hooks.js';
+import { evaluateHook, shutdownHookWorker } from '@/core/hooks.js';
 import { info, error as logError, warn } from '@/core/logger.js';
 import { getRepoPath } from '@/core/paths.js';
+import type { Config } from '@/core/types.js';
 import { getDb, schema } from '@/db/index.js';
 
 const hookTimers = new Map<number, ReturnType<typeof setInterval>>();
 const activeHookChecks = new Set<number>();
+let cachedConfig: Config | undefined;
+
+function getConfig(): Config {
+  if (!cachedConfig) {
+    cachedConfig = loadConfig();
+  }
+  return cachedConfig;
+}
 
 async function checkHook(hookId: number): Promise<void> {
   if (activeHookChecks.has(hookId)) return;
@@ -30,7 +39,7 @@ async function checkHook(hookId: number): Promise<void> {
     if (hasActiveJob) return;
 
     const repoPath = getRepoPath();
-    const config = loadConfig();
+    const config = getConfig();
     const state: Record<string, unknown> = JSON.parse(hook.stateJson || '{}');
     const result = await evaluateHook({
       checkFn: hook.checkFn,
@@ -79,6 +88,8 @@ async function checkHook(hookId: number): Promise<void> {
 }
 
 export function loadHooks(): void {
+  cachedConfig = undefined;
+
   const db = getDb();
   const activeHooks = db.select().from(schema.hooks).where(eq(schema.hooks.paused, 0)).all();
 
@@ -107,5 +118,6 @@ export function stopAllHooks(): void {
     clearInterval(timer);
     hookTimers.delete(id);
   }
+  shutdownHookWorker();
   info('All hooks stopped');
 }

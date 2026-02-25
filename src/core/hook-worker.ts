@@ -1,3 +1,4 @@
+import { realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { HookError } from './errors.js';
 
@@ -37,6 +38,13 @@ export interface WorkerResponse {
   error?: string;
 }
 
+async function runProcess(cmd: string[], cwd: string): Promise<{ output: string; stderr: string; code: number }> {
+  const proc = Bun.spawn(cmd, { cwd, stdin: 'ignore', stdout: 'pipe', stderr: 'pipe' });
+  const [output, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
+  const code = await proc.exited;
+  return { output: output.trim(), stderr: stderr.trim(), code };
+}
+
 function buildHookContext(
   repoPath: string,
   state: Record<string, unknown>,
@@ -49,6 +57,7 @@ function buildHookContext(
   repoPath: string;
 } {
   const allowlist = allowedCommands ? new Set(allowedCommands) : undefined;
+  const realRepo = realpathSync(repoPath);
 
   return {
     repoPath,
@@ -58,44 +67,34 @@ function buildHookContext(
       if (!subcommand || !GIT_READ_ONLY_COMMANDS.has(subcommand)) {
         throw new HookError(`git subcommand not allowed: ${subcommand ?? '(empty)'}`);
       }
-      const proc = Bun.spawn(['git', ...args], {
-        cwd: repoPath,
-        stdin: 'ignore',
-        stdout: 'pipe',
-        stderr: 'pipe',
-      });
-      const output = await new Response(proc.stdout).text();
-      const code = await proc.exited;
+      const { output, stderr, code } = await runProcess(['git', ...args], repoPath);
       if (code !== 0) {
-        const stderr = await new Response(proc.stderr).text();
-        throw new HookError(`git ${args.join(' ')} failed (exit ${code}): ${stderr.trim()}`);
+        throw new HookError(`git ${args.join(' ')} failed (exit ${code}): ${stderr}`);
       }
-      return output.trim();
+      return output;
     },
     async readFile(path: string): Promise<string> {
       const resolved = resolve(repoPath, path);
-      if (!resolved.startsWith(`${repoPath}/`) && resolved !== repoPath) {
+      let realResolved: string;
+      try {
+        realResolved = realpathSync(resolved);
+      } catch {
+        throw new HookError(`readFile failed: ${path} does not exist`);
+      }
+      if (!realResolved.startsWith(`${realRepo}/`) && realResolved !== realRepo) {
         throw new HookError(`readFile path outside repo: ${path}`);
       }
-      return Bun.file(resolved).text();
+      return Bun.file(realResolved).text();
     },
     async exec(cmd: string, args: string[]): Promise<string> {
       if (allowlist && !allowlist.has(cmd)) {
         throw new HookError(`command not allowed: ${cmd}. Allowed: ${[...allowlist].join(', ')}`);
       }
-      const proc = Bun.spawn([cmd, ...args], {
-        cwd: repoPath,
-        stdin: 'ignore',
-        stdout: 'pipe',
-        stderr: 'pipe',
-      });
-      const output = await new Response(proc.stdout).text();
-      const code = await proc.exited;
+      const { output, stderr, code } = await runProcess([cmd, ...args], repoPath);
       if (code !== 0) {
-        const stderr = await new Response(proc.stderr).text();
-        throw new HookError(`${cmd} ${args.join(' ')} failed (exit ${code}): ${stderr.trim()}`);
+        throw new HookError(`${cmd} ${args.join(' ')} failed (exit ${code}): ${stderr}`);
       }
-      return output.trim();
+      return output;
     },
   };
 }
