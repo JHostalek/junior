@@ -2,12 +2,11 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { detectMcp, resetMcpCache } from './mcp.js';
+import { detectMcp } from './mcp.js';
 
 let tmpDir: string;
 
 beforeEach(() => {
-  resetMcpCache();
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-test-'));
 });
 
@@ -49,22 +48,11 @@ describe('detectMcp', () => {
     expect(result.available).toBe(false);
   });
 
-  test('caches result per repo path', () => {
+  test('reflects file changes between calls', () => {
     const config = { mcpServers: { junior: { command: 'junior-mcp' } } };
     fs.writeFileSync(path.join(tmpDir, '.mcp.json'), JSON.stringify(config));
-    const first = detectMcp(tmpDir);
+    expect(detectMcp(tmpDir).available).toBe(true);
     fs.unlinkSync(path.join(tmpDir, '.mcp.json'));
-    const second = detectMcp(tmpDir);
-    expect(first).toBe(second);
-  });
-
-  test('resetMcpCache clears the cache', () => {
-    const config = { mcpServers: { junior: { command: 'junior-mcp' } } };
-    fs.writeFileSync(path.join(tmpDir, '.mcp.json'), JSON.stringify(config));
-    detectMcp(tmpDir);
-    resetMcpCache();
-    fs.unlinkSync(path.join(tmpDir, '.mcp.json'));
-    const result = detectMcp(tmpDir);
-    expect(result.available).toBe(false);
+    expect(detectMcp(tmpDir).available).toBe(false);
   });
 });
