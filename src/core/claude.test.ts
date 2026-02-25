@@ -34,6 +34,38 @@ describe('buildClaudeArgs', () => {
     expect(args[1]).toContain('Do not attempt to create schedules, hooks, or tasks');
     expect(args[1]).not.toContain('mcp__junior__');
   });
+
+  test('uses --dangerously-skip-permissions for explicit full mode', () => {
+    const args = buildClaudeArgs({ prompt: 'task', permissionMode: 'full' });
+    expect(args).toContain('--dangerously-skip-permissions');
+    expect(args).not.toContain('--allowedTools');
+  });
+
+  test('uses --allowedTools for standard mode without --dangerously-skip-permissions', () => {
+    const args = buildClaudeArgs({ prompt: 'task', permissionMode: 'standard' });
+    expect(args).not.toContain('--dangerously-skip-permissions');
+    const idx = args.indexOf('--allowedTools');
+    expect(idx).toBeGreaterThan(-1);
+    expect(args[idx + 1]).toContain('Bash');
+    expect(args[idx + 1]).toContain('Read');
+    expect(args[idx + 1]).toContain('Edit');
+  });
+
+  test('uses --allowedTools for safe mode without Bash', () => {
+    const args = buildClaudeArgs({ prompt: 'task', permissionMode: 'safe' });
+    expect(args).not.toContain('--dangerously-skip-permissions');
+    const idx = args.indexOf('--allowedTools');
+    expect(idx).toBeGreaterThan(-1);
+    expect(args[idx + 1]).not.toContain('Bash');
+    expect(args[idx + 1]).toContain('Read');
+    expect(args[idx + 1]).toContain('Edit');
+  });
+
+  test('defaults to full when permissionMode is omitted', () => {
+    const args = buildClaudeArgs({ prompt: 'task' });
+    expect(args).toContain('--dangerously-skip-permissions');
+    expect(args).not.toContain('--allowedTools');
+  });
 });
 
 describe('buildWorkerPreamble', () => {

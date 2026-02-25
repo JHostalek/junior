@@ -15,6 +15,7 @@ export const configSchema = z.object({
   max_retries: z.number().int().min(0).max(10),
   on_exit: z.enum(['ask', 'stop', 'keep']),
   review_mode: z.boolean().default(false),
+  permission_mode: z.enum(['full', 'standard', 'safe']).default('full'),
 });
 
 export const DEFAULT_CONFIG: Config = {
@@ -22,6 +23,7 @@ export const DEFAULT_CONFIG: Config = {
   max_retries: 0,
   on_exit: 'ask',
   review_mode: false,
+  permission_mode: 'full',
 };
 
 export function loadConfig(): Config {

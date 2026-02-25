@@ -19,6 +19,7 @@ export const jobs = sqliteTable('jobs', {
   runAt: integer('run_at'),
   sessionId: text('session_id'),
   review: integer('review').notNull().default(0),
+  permissionMode: text('permission_mode').notNull().default('full'),
   cancelRequestedAt: integer('cancel_requested_at'),
   ...timestamps,
 });

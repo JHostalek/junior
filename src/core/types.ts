@@ -6,11 +6,14 @@ export type { TaskFile } from './task-file.js';
 
 export type OnExitBehavior = 'ask' | 'stop' | 'keep';
 
+export type PermissionMode = 'full' | 'standard' | 'safe';
+
 export interface Config {
   max_concurrency: number;
   max_retries: number;
   on_exit: OnExitBehavior;
   review_mode: boolean;
+  permission_mode: PermissionMode;
 }
 
 export interface ClaudeUsage {

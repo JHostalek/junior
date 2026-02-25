@@ -24,13 +24,16 @@ import { cliAction, getJobOrExit, printTable } from './helpers.js';
 
 export const taskCommand = new Command('task').description('Manage tasks');
 
+const VALID_PERMISSION_MODES = ['full', 'standard', 'safe'] as const;
+
 taskCommand
   .command('add')
   .description('Add a new task')
   .argument('<description>', 'What to do (plain text, like a GitHub issue)')
   .option('--review', 'Enable review mode (skip auto-merge)')
+  .option('--permissions <mode>', 'Permission mode: full, standard, safe')
   .action(
-    cliAction(async (description: string, opts: { review?: boolean }) => {
+    cliAction(async (description: string, opts: { review?: boolean; permissions?: string }) => {
       ensureInit();
       const db = getDb();
       const repoPath = getRepoPath();
@@ -38,6 +41,13 @@ taskCommand
       const baseBranch = await getCurrentBranch(repoPath);
       const config = loadConfig();
       const review = (opts.review ?? config.review_mode) ? 1 : 0;
+      const permissionMode = opts.permissions ?? config.permission_mode;
+      if (!(VALID_PERMISSION_MODES as readonly string[]).includes(permissionMode)) {
+        console.error(
+          `Invalid permission mode "${permissionMode}". Must be one of: ${VALID_PERMISSION_MODES.join(', ')}`,
+        );
+        process.exit(1);
+      }
 
       const result = db
         .insert(schema.jobs)
@@ -47,11 +57,15 @@ taskCommand
           repoPath,
           baseBranch,
           review,
+          permissionMode,
         })
         .returning()
         .get();
 
-      console.log(`Task #${result.id} queued${review ? ' (review)' : ''}: ${result.title}`);
+      const flags = [review ? '(review)' : '', permissionMode !== 'full' ? `(${permissionMode})` : '']
+        .filter(Boolean)
+        .join(' ');
+      console.log(`Task #${result.id} queued${flags ? ` ${flags}` : ''}: ${result.title}`);
     }),
   );
 
@@ -102,9 +116,10 @@ taskCommand
       const db = getDb();
 
       console.log(`Task #${job.id}`);
-      console.log(`  Status:   ${job.status}`);
-      console.log(`  Branch:   ${job.branch ?? '(pending)'}`);
-      console.log(`  Created:  ${job.createdAt ? new Date(job.createdAt * 1000).toISOString() : 'N/A'}`);
+      console.log(`  Status:      ${job.status}`);
+      console.log(`  Branch:      ${job.branch ?? '(pending)'}`);
+      console.log(`  Permissions: ${job.permissionMode}`);
+      console.log(`  Created:     ${job.createdAt ? new Date(job.createdAt * 1000).toISOString() : 'N/A'}`);
       console.log(`\n  ${job.prompt}`);
 
       const runs = db

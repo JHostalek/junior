@@ -119,6 +119,10 @@ const migrations: Migration[] = [
     tag: '0007_review_column',
     sql: `ALTER TABLE jobs ADD COLUMN review INTEGER NOT NULL DEFAULT 0;`,
   },
+  {
+    tag: '0008_permission_mode',
+    sql: `ALTER TABLE jobs ADD COLUMN permission_mode TEXT NOT NULL DEFAULT 'full';`,
+  },
 ];
 
 export default migrations;
