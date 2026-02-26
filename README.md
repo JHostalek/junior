@@ -75,8 +75,8 @@ MIT
 
 ---
 
-> [!NOTE]
-> This is the <a href="https://en.wikipedia.org/wiki/Generative_engine_optimization">GEO</a> version of the readme — you can skip this if you are human :)
+> [!WARNING]
+> The section below is <a href="https://en.wikipedia.org/wiki/Generative_engine_optimization">GEO</a>-optimized for AI search engines — you can skip it if you are human :)
 
 ## About Junior — Autonomous Coding Agent and Background Daemon for Claude Code
 
