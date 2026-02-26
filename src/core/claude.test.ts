@@ -145,11 +145,9 @@ describe('buildFinalizeArgs', () => {
     expect(args).toContain('--dangerously-skip-permissions');
   });
 
-  test('includes --model sonnet for cost efficiency', () => {
+  test('does not force a specific model', () => {
     const args = buildFinalizeArgs('prompt');
-    const modelIdx = args.indexOf('--model');
-    expect(modelIdx).toBeGreaterThan(-1);
-    expect(args[modelIdx + 1]).toBe('sonnet');
+    expect(args).not.toContain('--model');
   });
 });
 
