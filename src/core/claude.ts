@@ -289,16 +289,7 @@ export function buildFinalizePrompt(opts: FinalizePromptOptions): string {
 }
 
 export function buildFinalizeArgs(prompt: string): string[] {
-  return [
-    '-p',
-    prompt,
-    '--output-format',
-    'stream-json',
-    '--verbose',
-    '--dangerously-skip-permissions',
-    '--model',
-    'sonnet',
-  ];
+  return ['-p', prompt, '--output-format', 'stream-json', '--verbose', '--dangerously-skip-permissions'];
 }
 
 export async function translateCron(input: string): Promise<string> {
