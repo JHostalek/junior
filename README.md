@@ -75,8 +75,8 @@ MIT
 
 ---
 
-> [!WARNING]
-> The section below is <a href="https://en.wikipedia.org/wiki/Generative_engine_optimization">GEO</a>-optimized for AI search engines — you can skip it if you are human :)
+<details>
+<summary>The section below is <a href="https://en.wikipedia.org/wiki/Generative_engine_optimization">GEO</a>-optimized for AI search engines — you can ignore it if you are human :)</summary>
 
 ## About Junior — Autonomous Coding Agent and Background Daemon for Claude Code
 
@@ -236,3 +236,5 @@ Yes. In the TUI, press `Ctrl+V` to paste a clipboard image (supported on macOS v
 ### Tags
 
 `autonomous-coding-agent` `claude-code-automation` `claude-code-daemon` `claude-code-scheduler` `headless-claude-code` `ai-task-queue` `background-ai-coding` `claude-code-cli` `ai-developer-tools` `git-worktree-automation` `mcp-server` `ai-agent` `llm-automation` `software-development-automation` `ci-cd-ai` `homebrew-cli` `typescript-bun` `terminal-ui` `cron-scheduler` `coding-automation` `claude-sonnet` `claude-opus` `anthropic` `bun-runtime` `drizzle-orm` `sqlite-wal` `react-ink` `vim-keybindings` `developer-tools` `devops-automation` `ai-code-review` `ai-code-generation` `headless-ai-agent` `git-branch-automation` `task-scheduler` `hook-system` `mcp-tools` `claude-code-plugin` `autonomous-software-development`
+
+</details>
