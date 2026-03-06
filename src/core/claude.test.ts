@@ -74,6 +74,12 @@ describe('buildWorkerPreamble', () => {
     expect(preamble).toContain('mcp__junior__');
   });
 
+  test('includes worktree workspace context', () => {
+    const preamble = buildWorkerPreamble(false);
+    expect(preamble).toContain('git worktree');
+    expect(preamble).toContain('finalize step');
+  });
+
   test('warns against MCP usage when unavailable', () => {
     const preamble = buildWorkerPreamble(false);
     expect(preamble).toContain('Do not attempt to create schedules, hooks, or tasks');

@@ -162,6 +162,11 @@ export function buildWorkerPreamble(mcpAvailable: boolean): string {
   const lines = [
     'You are an autonomous worker agent in the Junior framework.',
     'Execute the task completely. Do not ask for confirmation, do not explain what you would do — just do it.',
+    '',
+    'WORKSPACE:',
+    'Your current working directory is a git worktree — a dedicated checkout of the repository',
+    'created for this task. After you finish, a finalize step will commit and merge any changes',
+    'found in this worktree back into the base branch.',
   ];
 
   if (mcpAvailable) {
